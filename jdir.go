@@ -36,7 +36,7 @@ type JournalDir struct {
 	Dir       string
 	PerJLine  func([]byte)
 	OnStatChg func(tag rune, file string)
-	Quit      <-chan bool
+	Quit      chan bool
 	// PollWaitMin will be set to a reasonable default
 	PollWaitMin time.Duration
 	// PollWaitMax will be set to a reasonable default
@@ -67,8 +67,15 @@ func (jd *JournalDir) Watch() {
 			fseBase := filepath.Base(fse.Name)
 			if ok, tag := isStatsFile(fseBase); ok {
 				log.Logf(l.Trace, "FSevent on stats %s (%c): %v", fseBase, tag, fse)
-				jd.OnStatChg(tag, fse.Name)
-			} else if !isJournalFile(filepath.Base(fse.Name)) {
+				stat, err := os.Stat(fseBase)
+				if err != nil {
+					log.Logf(l.Debug, "cannot get fstat of %s: %s", fseBase, err)
+				} else if stat.Size() == 0 {
+					log.Logf(l.Debug, "empty stat file %s", fseBase)
+				} else {
+					jd.OnStatChg(tag, fse.Name)
+				}
+			} else if !IsJournalFile(filepath.Base(fse.Name)) {
 				log.Logf(l.Debug, "ignore event %s on non-journal file: %s",
 					fse.Op,
 					fse.Name)
@@ -167,8 +174,8 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 						sleep = jd.PollWaitMax
 					}
 				}
-				log.Logf(l.Debug, "nothing to do, sleep %d mSec…", sleep)
-				time.Sleep(time.Duration(sleep) * time.Millisecond)
+				log.Logf(l.Debug, "nothing to do, sleep %s…", sleep)
+				time.Sleep(sleep)
 				log.Logf(l.Debug, "…woke up again")
 			} else {
 				log.Logf(l.Info, "closing journal: %s", jrnlName)
@@ -185,27 +192,27 @@ func isStatsFile(name string) (flag bool, tag rune) {
 	return ok, tag
 }
 
-func isJournalFile(name string) bool {
+func IsJournalFile(name string) bool {
 	return str.HasPrefix(name, "Journal.") &&
 		str.HasSuffix(name, ".log")
 }
 
-func newestJournal(inDir string) (res string) {
-	dir, err := os.Open(inDir)
-	if err != nil {
-		log.Log(l.Error, "fail to scan journal-dir: ", err)
-		return ""
-	}
-	defer dir.Close()
-	var maxTime time.Time
-	infos, err := dir.Readdir(1)
-	for len(infos) > 0 && err == nil {
-		info := infos[0]
-		if isJournalFile(info.Name()) && (info.ModTime().After(maxTime) || len(res) == 0) {
-			res = info.Name()
-			maxTime = info.ModTime()
-		}
-		infos, err = dir.Readdir(1)
-	}
-	return filepath.Join(inDir, res)
-}
+//func newestJournal(inDir string) (res string) {
+//	dir, err := os.Open(inDir)
+//	if err != nil {
+//		log.Log(l.Error, "fail to scan journal-dir: ", err)
+//		return ""
+//	}
+//	defer dir.Close()
+//	var maxTime time.Time
+//	infos, err := dir.Readdir(1)
+//	for len(infos) > 0 && err == nil {
+//		info := infos[0]
+//		if isJournalFile(info.Name()) && (info.ModTime().After(maxTime) || len(res) == 0) {
+//			res = info.Name()
+//			maxTime = info.ModTime()
+//		}
+//		infos, err = dir.Readdir(1)
+//	}
+//	return filepath.Join(inDir, res)
+//}
