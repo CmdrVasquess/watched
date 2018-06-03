@@ -43,7 +43,7 @@ type JournalDir struct {
 	PollWaitMax time.Duration
 }
 
-func (jd *JournalDir) Watch() {
+func (jd *JournalDir) Watch(startWith string) {
 	if jd.PollWaitMin <= 0 {
 		jd.PollWaitMin = 500 * time.Millisecond
 	}
@@ -61,6 +61,9 @@ func (jd *JournalDir) Watch() {
 	watchList := make(chan string, 12) // do we really need backlog?
 	go jd.pollFile(watchList)          // careful: concurrency & shared state (const!)
 	log.Logf(l.Info, "watching journals in: %s", jd.Dir)
+	if len(startWith) > 0 {
+		watchList <- filepath.Join(jd.Dir, startWith)
+	}
 	for {
 		select {
 		case fse := <-watch.Events:
