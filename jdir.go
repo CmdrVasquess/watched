@@ -16,7 +16,7 @@ import (
 
 	"runtime"
 
-	l "github.com/fractalqb/qblog"
+	l "git.fractalqb.de/fractalqb/qblog"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -69,13 +69,17 @@ func (jd *JournalDir) Watch(startWith string) {
 		case fse := <-watch.Events:
 			fseBase := filepath.Base(fse.Name)
 			if ok, tag := isStatsFile(fseBase); ok {
+				if fse.Op != fsnotify.Write {
+					continue
+				}
 				log.Logf(l.Trace, "FSevent on stats %s (%c): %v", fseBase, tag, fse)
-				stat, err := os.Stat(fseBase)
+				stat, err := os.Stat(fse.Name)
 				if err != nil {
-					log.Logf(l.Debug, "cannot get fstat of %s: %s", fseBase, err)
+					log.Logf(l.Error, "cannot get fstat of %s: %s", fse.Name, err)
 				} else if stat.Size() == 0 {
 					log.Logf(l.Debug, "empty stat file %s", fseBase)
 				} else {
+					log.Logf(l.Trace, "stat file %s size: %d", fseBase, stat.Size())
 					jd.OnStatChg(tag, fse.Name)
 				}
 			} else if !IsJournalFile(filepath.Base(fse.Name)) {
@@ -156,7 +160,7 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 		} else {
 			newRdPos := jrnlStat.Size()
 			if newRdPos > jrnlRdPos {
-				log.Logf(l.Debug, "new bytes: %d [%d > %d]",
+				log.Logf(l.Debug, "new bytes: %d [%d … %d]",
 					newRdPos-jrnlRdPos,
 					jrnlRdPos,
 					newRdPos)
