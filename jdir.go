@@ -160,7 +160,7 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 		} else {
 			newRdPos := jrnlStat.Size()
 			if newRdPos > jrnlRdPos {
-				log.Logf(l.Debug, "new bytes: %d [%d > %d]",
+				log.Logf(l.Debug, "new bytes: %d [%d … %d]",
 					newRdPos-jrnlRdPos,
 					jrnlRdPos,
 					newRdPos)
