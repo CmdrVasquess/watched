@@ -16,7 +16,7 @@ import (
 
 	"runtime"
 
-	l "git.fractalqb.de/fractalqb/qblog"
+	l "github.com/fractalqb/qblog"
 	"github.com/fsnotify/fsnotify"
 )
 
