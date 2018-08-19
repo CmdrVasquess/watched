@@ -45,7 +45,7 @@ type JournalDir struct {
 
 func (jd *JournalDir) Watch(startWith string) {
 	if jd.PollWaitMin <= 0 {
-		jd.PollWaitMin = 500 * time.Millisecond
+		jd.PollWaitMin = 700 * time.Millisecond
 	}
 	if jd.PollWaitMax < jd.PollWaitMin {
 		jd.PollWaitMax = 4691 * time.Millisecond
@@ -177,7 +177,7 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 				case sleep == 0:
 					sleep = jd.PollWaitMin
 				case sleep < jd.PollWaitMax:
-					if sleep = 4 * sleep / 3; sleep > jd.PollWaitMax {
+					if sleep = 5 * sleep / 4; sleep > jd.PollWaitMax {
 						sleep = jd.PollWaitMax
 					}
 				}
