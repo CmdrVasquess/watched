@@ -80,7 +80,9 @@ func (jd *JournalDir) Watch(startWith string) {
 					log.Debugf("empty stat file %s", fseBase)
 				} else {
 					log.Tracef("stat file %s size: %d", fseBase, stat.Size())
-					jd.OnStatChg(tag, fse.Name)
+					if jd.OnStatChg != nil {
+						jd.OnStatChg(tag, fse.Name)
+					}
 				}
 			} else if !IsJournalFile(filepath.Base(fse.Name)) {
 				log.Debugf("ignore event %s on non-journal file: %s",
@@ -166,7 +168,9 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 				jrnlScnr.Split(splitLogLines)
 				for jrnlScnr.Scan() {
 					line := jrnlScnr.Bytes()
-					jd.PerJLine(line)
+					if jd.PerJLine != nil {
+						jd.PerJLine(line)
+					}
 				}
 				jrnlRdPos = newRdPos
 				sleep = 0
