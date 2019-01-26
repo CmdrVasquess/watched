@@ -16,12 +16,14 @@ import (
 
 	"runtime"
 
-	l "git.fractalqb.de/fractalqb/qblog"
+	l "git.fractalqb.de/fractalqb/qbsllm"
 	"github.com/fsnotify/fsnotify"
 )
 
-var log = l.Std("wtchED:")
-var LogConfig = l.Package(log)
+var (
+	log       = l.New(l.Lnormal, "wtchED", nil, nil)
+	LogConfig = l.Config(log)
+)
 
 const (
 	EscrJournal  = 'J'
@@ -52,15 +54,15 @@ func (jd *JournalDir) Watch(startWith string) {
 	}
 	watch, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatalf("cannot create fs-watcher: %s", err)
+		log.FatalA("cannot create fs-watcher: `err`", err)
 	}
 	defer watch.Close()
 	if err = watch.Add(jd.Dir); err != nil {
-		log.Fatalf("cannot watch %s: %s", jd.Dir, err)
+		log.FatalA("cannot watch `dir`: `err`", jd.Dir, err)
 	}
 	watchList := make(chan string, 12) // do we really need backlog?
 	go jd.pollFile(watchList)          // careful: concurrency & shared state (const!)
-	log.Infof("watching journals in: %s", jd.Dir)
+	log.InfoA("watching journals in `dir`", jd.Dir)
 	if len(startWith) > 0 {
 		watchList <- filepath.Join(jd.Dir, startWith)
 	}
@@ -72,30 +74,28 @@ func (jd *JournalDir) Watch(startWith string) {
 				if fse.Op != fsnotify.Write {
 					continue
 				}
-				log.Tracef("FSevent on stats %s (%c): %v", fseBase, tag, fse)
+				log.TraceA("FSevent on `stats` (`tag`): `event`", fseBase, tag, fse)
 				stat, err := os.Stat(fse.Name)
 				if err != nil {
-					log.Errorf("cannot get fstat of %s: %s", fse.Name, err)
+					log.ErrorA("cannot get fstat of `event`: `err`", fse.Name, err)
 				} else if stat.Size() == 0 {
-					log.Debugf("empty stat file %s", fseBase)
+					log.DebugA("empty stat `file`", fseBase)
 				} else {
-					log.Tracef("stat file %s size: %d", fseBase, stat.Size())
+					log.TraceA("stat `file` `size`", fseBase, stat.Size())
 					jd.OnStatChg(tag, fse.Name)
 				}
 			} else if !IsJournalFile(filepath.Base(fse.Name)) {
-				log.Debugf("ignore event %s on non-journal file: %s",
-					fse.Op,
-					fse.Name)
+				log.DebugA("ignore `event` on non-journal `file`", fse.Op, fse.Name)
 			} else if fse.Op&fsnotify.Create == fsnotify.Create {
 				cleanName := filepath.Clean(fse.Name)
-				log.Debugf("enqueue new journal: %s", cleanName)
+				log.DebugA("enqueue new `journal`", cleanName)
 				watchList <- cleanName
 			}
 		case err = <-watch.Errors:
-			log.Errorf("fs-watch error: %q", err)
+			log.ErrorA("fs-watch `err`", err)
 		case <-jd.Quit:
 			watchList <- ""
-			log.Info("exit journal watcher")
+			log.Info(l.Msg("exit journal watcher"))
 			runtime.Goexit()
 		}
 	}
@@ -123,7 +123,7 @@ func splitLogLines(data []byte, atEOF bool) (advance int, token []byte, err erro
 }
 
 func (jd *JournalDir) pollFile(watchFiles chan string) {
-	log.Log(l.Linfo, "file poller waiting for journals")
+	log.Info(l.Msg("file poller waiting for journals"))
 	var jrnlName string
 	var jrnlFile *os.File
 	var jrnlRdPos int64
@@ -137,13 +137,13 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 		if len(jrnlName) == 0 {
 			jrnlName = <-watchFiles
 			if jrnlName == "" {
-				log.Info("exit logwatch file-poller")
+				log.Info(l.Msg("exit logwatch file-poller"))
 				runtime.Goexit()
 			}
-			log.Infof("start watching: %s", jrnlName)
+			log.InfoA("start watching `file`", jrnlName)
 			var err error
 			if jrnlFile, err = os.Open(jrnlName); err != nil {
-				log.Errorf("cannot watch %s: %s", jrnlName, err)
+				log.ErrorA("cannot watch `file`: `err`", jrnlName, err)
 				jrnlName = ""
 			}
 			jrnlRdPos = 0
@@ -151,14 +151,14 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 		}
 		jrnlStat, err := jrnlFile.Stat()
 		if err != nil {
-			log.Errorf("cannot Stat() %s: %s", jrnlName, err)
+			log.ErrorA("cannot Stat() `file`: `err`", jrnlName, err)
 			jrnlFile.Close()
 			jrnlFile = nil
 			jrnlName = ""
 		} else {
 			newRdPos := jrnlStat.Size()
 			if newRdPos > jrnlRdPos {
-				log.Tracef("new bytes: %d [%d … %d]",
+				log.TraceA("new bytes: `count` [`start` … `end`]",
 					newRdPos-jrnlRdPos,
 					jrnlRdPos,
 					newRdPos)
@@ -179,11 +179,11 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 						sleep = jd.PollWaitMax
 					}
 				}
-				log.Tracef("nothing to do, sleep %s…", sleep)
+				log.TraceA("nothing to do, `sleep`…", sleep)
 				time.Sleep(sleep)
-				log.Trace("…woke up again")
+				log.Trace(l.Msg("…woke up again"))
 			} else {
-				log.Infof("closing journal: %s", jrnlName)
+				log.InfoA("closing journal: `file`", jrnlName)
 				jrnlFile.Close()
 				jrnlFile = nil
 				jrnlName = ""
