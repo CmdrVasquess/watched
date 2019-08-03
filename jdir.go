@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	log       = l.New(l.Lnormal, "wtchED", nil, nil)
-	LogConfig = l.Config(log)
+	log    = l.New(l.Lnormal, "watchED", nil, nil)
+	LogCfg = l.Config(log)
 )
 
 const (
@@ -202,22 +202,21 @@ func IsJournalFile(name string) bool {
 		str.HasSuffix(name, ".log")
 }
 
-//func newestJournal(inDir string) (res string) {
-//	dir, err := os.Open(inDir)
-//	if err != nil {
-//		log.Log(l.Error, "fail to scan journal-dir: ", err)
-//		return ""
-//	}
-//	defer dir.Close()
-//	var maxTime time.Time
-//	infos, err := dir.Readdir(1)
-//	for len(infos) > 0 && err == nil {
-//		info := infos[0]
-//		if isJournalFile(info.Name()) && (info.ModTime().After(maxTime) || len(res) == 0) {
-//			res = info.Name()
-//			maxTime = info.ModTime()
-//		}
-//		infos, err = dir.Readdir(1)
-//	}
-//	return filepath.Join(inDir, res)
-//}
+func NewestJournal(inDir string) (res string, err error) {
+	dir, err := os.Open(inDir)
+	if err != nil {
+		return "", err
+	}
+	defer dir.Close()
+	var maxTime time.Time
+	infos, err := dir.Readdir(1)
+	for len(infos) > 0 && err == nil {
+		info := infos[0]
+		if IsJournalFile(info.Name()) && (info.ModTime().After(maxTime) || len(res) == 0) {
+			res = info.Name()
+			maxTime = info.ModTime()
+		}
+		infos, err = dir.Readdir(1)
+	}
+	return res, nil
+}
