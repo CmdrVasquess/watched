@@ -27,7 +27,8 @@ var (
 
 const (
 	EscrJournal  = 'J'
-	EscrMarket   = 'C' // Commerce
+	EscrCargo    = 'C'
+	EscrMarket   = 'T' // Trade
 	EscrModules  = 'M'
 	EscrOutfit   = 'F'
 	EscrShipyard = 'Y'
@@ -71,10 +72,10 @@ func (jd *JournalDir) Watch(startWith string) {
 		case fse := <-watch.Events:
 			fseBase := filepath.Base(fse.Name)
 			if ok, tag := isStatsFile(fseBase); ok {
+				log.Tracea("FSevent on `stats` (`tag`): `event`", fseBase, string(tag), fse)
 				if fse.Op != fsnotify.Write {
 					continue
 				}
-				log.Tracea("FSevent on `stats` (`tag`): `event`", fseBase, tag, fse)
 				stat, err := os.Stat(fse.Name)
 				if err != nil {
 					log.Errora("cannot get fstat of `event`: `err`", fse.Name, err)
@@ -107,6 +108,7 @@ var journalStatsFiles = map[string]rune{
 	"Outfitting.json":  EscrOutfit,
 	"Shipyard.json":    EscrShipyard,
 	"Status.json":      EscrStatus,
+	"Cargo.json":       EscrCargo,
 }
 
 // Unix: \n; Win: \r\n; Apple <= OS 9: \r
