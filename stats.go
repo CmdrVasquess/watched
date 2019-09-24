@@ -2,7 +2,7 @@ package watched
 
 // Read: https://forums.frontier.co.uk/forums/elite-api-and-tools/
 const (
-	StatFlagFlagDocked uint32 = (1 << iota)
+	StatFlagDocked uint32 = (1 << iota)
 	StatFlagLanded
 	StatFlagGearDown
 	StatFlagShieldsUp
@@ -38,3 +38,7 @@ const (
 	StatFlagNightVis
 	StatFlagAltAvgR
 )
+
+func FlagsAny(set, test uint32) bool { return set&test != 0 }
+
+func FlagsAll(set, test uint32) bool { return set%test == test }

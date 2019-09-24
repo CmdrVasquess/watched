@@ -80,7 +80,7 @@ func (jd *JournalDir) Watch(startWith string) {
 				if err != nil {
 					log.Errora("cannot get fstat of `event`: `err`", fse.Name, err)
 				} else if stat.Size() == 0 {
-					log.Debuga("empty stat `file`", fseBase)
+					log.Tracea("empty stat `file`", fseBase)
 				} else {
 					log.Tracea("stat `file` `size`", fseBase, stat.Size())
 					jd.OnStatChg(tag, fse.Name)
