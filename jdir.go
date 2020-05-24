@@ -14,15 +14,17 @@ import (
 	str "strings"
 	"time"
 
+	"git.fractalqb.de/fractalqb/c4hgol"
+
 	"runtime"
 
-	l "git.fractalqb.de/fractalqb/qbsllm"
+	"git.fractalqb.de/fractalqb/qbsllm"
 	"github.com/fsnotify/fsnotify"
 )
 
 var (
-	log    = l.New(l.Lnormal, "watchED", nil, nil)
-	LogCfg = l.Config(log)
+	log    = qbsllm.New(qbsllm.Lnormal, "watchED", nil, nil)
+	LogCfg = c4hgol.Config(qbsllm.NewConfig(log))
 )
 
 const (
@@ -64,7 +66,7 @@ func (jd *JournalDir) Watch(startWith string) {
 	watchList := make(chan string, 12) // do we really need backlog?
 	go jd.pollFile(watchList)          // careful: concurrency & shared state (const!)
 	log.Infoa("watching journals in `dir`", jd.Dir)
-	if len(startWith) > 0 {
+	if startWith != "" {
 		watchList <- filepath.Join(jd.Dir, startWith)
 	}
 	for {
@@ -96,7 +98,7 @@ func (jd *JournalDir) Watch(startWith string) {
 			log.Errora("fs-watch `err`", err)
 		case <-jd.Quit:
 			watchList <- ""
-			log.Info(l.Str("exit journal watcher"))
+			log.Infos("exit journal watcher")
 			runtime.Goexit()
 		}
 	}
@@ -125,7 +127,7 @@ func splitLogLines(data []byte, atEOF bool) (advance int, token []byte, err erro
 }
 
 func (jd *JournalDir) pollFile(watchFiles chan string) {
-	log.Info(l.Str("file poller waiting for journals"))
+	log.Infos("file poller waiting for journals")
 	var jrnlName string
 	var jrnlFile *os.File
 	var jrnlRdPos int64
@@ -139,7 +141,7 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 		if len(jrnlName) == 0 {
 			jrnlName = <-watchFiles
 			if jrnlName == "" {
-				log.Info(l.Str("exit logwatch file-poller"))
+				log.Infos("exit logwatch file-poller")
 				runtime.Goexit()
 			}
 			log.Infoa("start watching `file`", jrnlName)
@@ -183,7 +185,7 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 				}
 				log.Tracea("nothing to do, `sleep`…", sleep)
 				time.Sleep(sleep)
-				log.Trace(l.Str("…woke up again"))
+				log.Traces("…woke up again")
 			} else {
 				log.Infoa("closing journal: `file`", jrnlName)
 				jrnlFile.Close()
