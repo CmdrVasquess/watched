@@ -28,19 +28,18 @@ var (
 )
 
 const (
-	EscrJournal  = 'J'
-	EscrCargo    = 'C'
-	EscrMarket   = 'T' // Trade
-	EscrModules  = 'M'
-	EscrOutfit   = 'F'
-	EscrShipyard = 'Y'
-	EscrStatus   = 'S'
+	StatCargo    = "Cargo"
+	StatMarket   = "Market"
+	StatModules  = "ModuleInfo"
+	StatOutfit   = "Outfitting"
+	StatShipyard = "Shipyard"
+	StatStatus   = "Status"
 )
 
 type JournalDir struct {
 	Dir       string
 	PerJLine  func([]byte)
-	OnStatChg func(tag rune, file string)
+	OnStatChg func(event string, file string)
 	Quit      chan bool
 	// PollWaitMin will be set to a reasonable default
 	PollWaitMin time.Duration
@@ -73,8 +72,8 @@ func (jd *JournalDir) Watch(startWith string) {
 		select {
 		case fse := <-watch.Events:
 			fseBase := filepath.Base(fse.Name)
-			if ok, tag := isStatsFile(fseBase); ok {
-				log.Tracea("FSevent on `stats` (`tag`): `event`", fseBase, string(tag), fse)
+			if evt := journalStatsFiles[fseBase]; evt != "" {
+				log.Tracea("FS event on `stats` `tag`: `event`", fseBase, evt, fse)
 				if fse.Op != fsnotify.Write {
 					continue
 				}
@@ -85,7 +84,7 @@ func (jd *JournalDir) Watch(startWith string) {
 					log.Tracea("empty stat `file`", fseBase)
 				} else {
 					log.Tracea("stat `file` `size`", fseBase, stat.Size())
-					jd.OnStatChg(tag, fse.Name)
+					jd.OnStatChg(evt, fse.Name)
 				}
 			} else if !IsJournalFile(filepath.Base(fse.Name)) {
 				log.Debuga("ignore `event` on non-journal `file`", fse.Op, fse.Name)
@@ -104,13 +103,13 @@ func (jd *JournalDir) Watch(startWith string) {
 	}
 }
 
-var journalStatsFiles = map[string]rune{
-	"Market.json":      EscrMarket,
-	"ModulesInfo.json": EscrModules,
-	"Outfitting.json":  EscrOutfit,
-	"Shipyard.json":    EscrShipyard,
-	"Status.json":      EscrStatus,
-	"Cargo.json":       EscrCargo,
+var journalStatsFiles = map[string]string{
+	"Cargo.json":       StatCargo,
+	"Market.json":      StatMarket,
+	"ModulesInfo.json": StatModules,
+	"Outfitting.json":  StatOutfit,
+	"Shipyard.json":    StatShipyard,
+	"Status.json":      StatStatus,
 }
 
 // Unix: \n; Win: \r\n; Apple <= OS 9: \r
@@ -194,11 +193,6 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 			}
 		}
 	}
-}
-
-func isStatsFile(name string) (flag bool, tag rune) {
-	tag, ok := journalStatsFiles[name]
-	return ok, tag
 }
 
 func IsJournalFile(name string) bool {
