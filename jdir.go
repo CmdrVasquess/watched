@@ -97,7 +97,9 @@ func (jd *JournalDir) Watch(startWith string) {
 			log.Errora("fs-watch `err`", err)
 		case <-jd.Quit:
 			watchList <- ""
+			<-watchList
 			log.Infos("exit journal watcher")
+			close(jd.Quit)
 			runtime.Goexit()
 		}
 	}
@@ -141,6 +143,7 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 			jrnlName = <-watchFiles
 			if jrnlName == "" {
 				log.Infos("exit logwatch file-poller")
+				close(watchFiles)
 				runtime.Goexit()
 			}
 			log.Infoa("start watching `file`", jrnlName)
