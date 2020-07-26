@@ -1,0 +1,7 @@
+{
+	"off": true,
+	"name": "echo",
+	"run": "echo",
+	"stdout": true,
+	"stderr": false
+}

@@ -1,4 +1,4 @@
-package watched
+package jdir
 
 import (
 	"bufio"

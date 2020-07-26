@@ -1,4 +1,4 @@
-package watched
+package jdir
 
 /* To be portable we need to poll the logfile. On MS Win one only gets update
  * events, if the directory is "touched", i.e. a logfile that stays open and
@@ -11,40 +11,30 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	str "strings"
 	"time"
 
-	"git.fractalqb.de/fractalqb/c4hgol"
-
-	"runtime"
-
-	"git.fractalqb.de/fractalqb/qbsllm"
+	"github.com/CmdrVasquess/watched"
+	"github.com/CmdrVasquess/watched/internal"
 	"github.com/fsnotify/fsnotify"
 )
 
-var (
-	log    = qbsllm.New(qbsllm.Lnormal, "watchED", nil, nil)
-	LogCfg = c4hgol.Config(qbsllm.NewConfig(log))
-)
-
-const (
-	StatCargo    = "Cargo"
-	StatMarket   = "Market"
-	StatModules  = "ModuleInfo"
-	StatOutfit   = "Outfitting"
-	StatShipyard = "Shipyard"
-	StatStatus   = "Status"
-)
+var log = internal.JDirLog
 
 type JournalDir struct {
 	Dir       string
 	PerJLine  func([]byte)
-	OnStatChg func(event string, file string)
-	Quit      chan bool
+	OnStatChg func(event watched.StatusType, file string)
+	Stop      chan internal.StopEvent
 	// PollWaitMin will be set to a reasonable default
 	PollWaitMin time.Duration
 	// PollWaitMax will be set to a reasonable default
 	PollWaitMax time.Duration
+}
+
+func MakeStopChan() chan internal.StopEvent {
+	return make(chan internal.StopEvent)
 }
 
 func (jd *JournalDir) Watch(startWith string) {
@@ -72,7 +62,7 @@ func (jd *JournalDir) Watch(startWith string) {
 		select {
 		case fse := <-watch.Events:
 			fseBase := filepath.Base(fse.Name)
-			if evt := journalStatsFiles[fseBase]; evt != "" {
+			if evt := statsFiles[fseBase]; evt != 0 {
 				log.Tracea("FS event on `stats` `tag`: `event`", fseBase, evt, fse)
 				if fse.Op != fsnotify.Write {
 					continue
@@ -95,23 +85,24 @@ func (jd *JournalDir) Watch(startWith string) {
 			}
 		case err = <-watch.Errors:
 			log.Errora("fs-watch `err`", err)
-		case <-jd.Quit:
+		case <-jd.Stop:
 			watchList <- ""
 			<-watchList
 			log.Infos("exit journal watcher")
-			close(jd.Quit)
-			runtime.Goexit()
+			close(jd.Stop)
+			return
 		}
 	}
 }
 
-var journalStatsFiles = map[string]string{
-	"Cargo.json":       StatCargo,
-	"Market.json":      StatMarket,
-	"ModulesInfo.json": StatModules,
-	"Outfitting.json":  StatOutfit,
-	"Shipyard.json":    StatShipyard,
-	"Status.json":      StatStatus,
+var statsFiles = map[string]watched.StatusType{
+	"Cargo.json":       watched.StatCargo,
+	"Market.json":      watched.StatMarket,
+	"ModulesInfo.json": watched.StatModules,
+	"NavRoute.json":    watched.StatNavRoute,
+	"Outfitting.json":  watched.StatOutfit,
+	"Shipyard.json":    watched.StatShipyard,
+	"Status.json":      watched.StatStatus,
 }
 
 // Unix: \n; Win: \r\n; Apple <= OS 9: \r

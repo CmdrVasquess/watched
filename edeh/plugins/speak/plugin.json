@@ -1,0 +1,12 @@
+{
+	"name": "speak",
+	"run": "speak",
+	"args": ["-tts", "espeak-ng"],
+	"stderr": true,
+	"journal": {
+		"blacklist": ["*"],
+		"whitelist": [
+			"ReceiveText"
+		]
+	}
+}
