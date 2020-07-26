@@ -31,6 +31,7 @@ const (
 	StatCargo    = "Cargo"
 	StatMarket   = "Market"
 	StatModules  = "ModuleInfo"
+	StatNavRoute = "NavRoute"
 	StatOutfit   = "Outfitting"
 	StatShipyard = "Shipyard"
 	StatStatus   = "Status"
@@ -109,6 +110,7 @@ var journalStatsFiles = map[string]string{
 	"Cargo.json":       StatCargo,
 	"Market.json":      StatMarket,
 	"ModulesInfo.json": StatModules,
+	"NavRoute.json":    StatNavRoute,
 	"Outfitting.json":  StatOutfit,
 	"Shipyard.json":    StatShipyard,
 	"Status.json":      StatStatus,
