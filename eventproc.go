@@ -22,6 +22,15 @@ type StatusType int
 
 func (st StatusType) String() string { return statNames[st] }
 
+func ParseStatusType(s string) StatusType {
+	for i, n := range statNames[1:] {
+		if n == s {
+			return StatusType(i + 1)
+		}
+	}
+	return 0
+}
+
 const (
 	StatCargo StatusType = iota + 1
 	StatMarket
@@ -54,9 +63,15 @@ type StatusEvent struct {
 	Event RawEvent
 }
 
-type EDEvents struct {
+type EventSrc struct {
 	Journal <-chan JounalEvent
 	Status  <-chan StatusEvent
+}
+
+type EventRecv interface {
+	Journal(e JounalEvent) error
+	Status(e StatusEvent) error
+	Close() error
 }
 
 var statNames = []string{

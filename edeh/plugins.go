@@ -8,9 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/CmdrVasquess/watched"
-
 	"git.fractalqb.de/fractalqb/sllm"
+	"github.com/CmdrVasquess/watched"
 )
 
 const pluginManifest = "plugin.json"
@@ -57,6 +56,35 @@ type plugin struct {
 	rootDir string
 	cmd     *exec.Cmd
 	pipe    io.WriteCloser
+	src     watched.EventSrc
+}
+
+func (pin *plugin) start() {
+	log.Infoa("running receive loop of `plugin`", pin.Name)
+	count := 0
+	if pin.src.Journal != nil {
+		count++
+	}
+	if pin.src.Status != nil {
+		count++
+	}
+	for count > 0 {
+		select {
+		case e, ok := <-pin.src.Journal:
+			if ok {
+				pin.sendJournal(e.Event)
+			} else {
+				count--
+			}
+		case _, ok := <-pin.src.Status:
+			if ok {
+				log.Debugs("drop unsupported status event")
+			} else {
+				count--
+			}
+		}
+	}
+	log.Infoa("leave receive loop of `plugin`", pin.Name)
 }
 
 func (pin *plugin) sendJournal(line watched.RawEvent) error {
@@ -160,6 +188,11 @@ func loadPlugin(manifest string) error {
 	if err = pin.cmd.Start(); err != nil {
 		log.Errore(err)
 	}
+	pin.src = disp.Branch(watched.BranchConfig{
+		JournalQLen: 16,
+		StatusQLen:  16,
+	})
 	plugins = append(plugins, pin)
+	go pin.start()
 	return nil
 }

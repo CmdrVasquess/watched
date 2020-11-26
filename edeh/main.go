@@ -18,15 +18,16 @@ import (
 const configName = "edeh.json"
 
 var (
-	watchED      *jdir.EDEvents
 	fJDir        string
 	fWatchLatest bool
 	fPluginPath  string
 	fData        string
-	config       struct {
+
+	config struct {
 		Version string
 		LastSer int64
 	}
+	disp watched.RecvToSrc
 )
 
 func readConfig() error {
@@ -61,17 +62,6 @@ func writeConfig() error {
 	}
 	wr.Close()
 	return os.Rename(tmpFile, cfgFile)
-}
-
-func eventLoop(esrc *watched.EDEvents) {
-	for {
-		select {
-		case je := <-esrc.Journal:
-			journalEvent(je.Serial, je.Event)
-		case se := <-esrc.Status:
-			statusEvent(se.Type, se.Event)
-		}
-	}
 }
 
 func journalEvent(ser int64, revt watched.RawEvent) {
@@ -112,14 +102,6 @@ func mustFindDataDir() string {
 	return res
 }
 
-func mustFindDataDir() string {
-	res, err := findDataDir()
-	if err != nil {
-		log.Fatale(err)
-	}
-	return res
-}
-
 func flags() {
 	flag.StringVar(&fJDir, "j", "",
 		"Manually set the directory with ED's journal files")
@@ -135,6 +117,7 @@ func flags() {
 }
 
 func main() {
+	log.Infof("edeh v%d.%d.%d-%s+%d", Major, Minor, Patch, Quality, BuildNo)
 	flags()
 	if err := readConfig(); err != nil {
 		log.Fatale(err)
@@ -150,6 +133,7 @@ func main() {
 			log.Fatale(err)
 		}
 	}
+	watchED := jdir.NewEvents(fJDir, &disp, nil)
 	loadPlugins(fPluginPath)
 	go watchED.Start(latestJournal)
 	sigs := make(chan os.Signal)
