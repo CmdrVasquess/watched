@@ -7,12 +7,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
+	"time"
 
 	"git.fractalqb.de/fractalqb/sllm"
 	"github.com/CmdrVasquess/watched"
 )
 
 const pluginManifest = "plugin.json"
+const shutdownDelay = 5 * time.Second
+
+var pinSwitches = make(map[string]bool)
 
 type bwList []string
 
@@ -56,53 +61,86 @@ type plugin struct {
 	rootDir string
 	cmd     *exec.Cmd
 	pipe    io.WriteCloser
-	src     watched.EventSrc
+	jes     chan *jEvent
+	ses     chan *sEvent
 }
 
-func (pin *plugin) start() {
+type jEvent struct {
+	watched.JounalEvent
+	evt string
+	msg []byte
+}
+
+type sEvent struct {
+	watched.StatusEvent
+	msg []byte
+}
+
+func (pin *plugin) start(closed *sync.WaitGroup) {
+	closed.Add(1)
+	defer closed.Done()
 	log.Infoa("running receive loop of `plugin`", pin.Name)
 	count := 0
-	if pin.src.Journal != nil {
+	if pin.jes != nil {
 		count++
 	}
-	if pin.src.Status != nil {
+	if pin.ses != nil {
 		count++
 	}
 	for count > 0 {
 		select {
-		case e, ok := <-pin.src.Journal:
+		case e, ok := <-pin.jes:
 			if ok {
-				pin.sendJournal(e.Event)
+				if err := pin.sendJournal(e); err != nil {
+					log.Warna("sending journal `event` `to`: `err`",
+						e.evt,
+						pin.Name,
+						err)
+				}
 			} else {
 				count--
 			}
-		case _, ok := <-pin.src.Status:
+		case e, ok := <-pin.ses:
 			if ok {
-				log.Debugs("drop unsupported status event")
+				if err := pin.sendStatus(e); err != nil {
+					log.Warna("sending status `event` `to`: `err`",
+						e.Type,
+						pin.Name,
+						err)
+				}
 			} else {
 				count--
 			}
 		}
 	}
-	log.Infoa("leave receive loop of `plugin`", pin.Name)
+	log.Debuga("leave receive loop of `plugin`, shutdown…", pin.Name)
+	if err := pin.pipe.Close(); err != nil {
+		log.Errora("closing pipe to `plugin`: `err`", pin.Name, err)
+		pin.cmd.Process.Kill()
+		log.Warna("killed `plugin`", pin.Name)
+	} else {
+		t := time.AfterFunc(shutdownDelay, func() {
+			log.Warna("`shutdown time` of `plugin` exceeded, kill", shutdownDelay, pin.Name)
+			pin.cmd.Process.Kill()
+		})
+		pin.cmd.Wait()
+		t.Stop()
+		log.Infoa("shutdown of `plugin` done", pin.Name)
+	}
 }
 
-func (pin *plugin) sendJournal(line watched.RawEvent) error {
-	event, err := line.PeekEvent()
-	if err != nil {
-		return err
-	}
-	if pin.Journal.Blacklist.Blacklisted(event) &&
-		!pin.Journal.Whitelist.Whitelisted(event) {
+func (pin *plugin) sendJournal(je *jEvent) error {
+	if pin.Journal.Blacklist.Blacklisted(je.evt) &&
+		!pin.Journal.Whitelist.Whitelisted(je.evt) {
 		return nil
 	}
-	if _, err := pin.pipe.Write(line); err != nil {
-		log.Warna("sending journal `event` `to`: `err`", event, pin.Name, err)
-	}
-	return nil
+	_, err := pin.pipe.Write(je.msg)
+	return err
 }
 
-var plugins []*plugin
+func (pin *plugin) sendStatus(se *sEvent) error {
+	return fmt.Errorf("NYI %s: %s", se.Type, string(se.Event))
+}
 
 func loadPlugins(path string) {
 	pdirs := filepath.SplitList(path)
@@ -159,7 +197,12 @@ func loadPlugin(manifest string) error {
 	if err != nil {
 		return fmt.Errorf("load manifest '%s': %s", manifest, err)
 	}
-	if pin.Off {
+	if run, ok := pinSwitches[pin.Name]; ok {
+		if !run {
+			log.Infoa("`plugin` is switched off", pin.Name)
+			return nil
+		}
+	} else if pin.Off {
 		log.Infoa("`plugin` is switched off", pin.Name)
 		return nil
 	}
@@ -188,11 +231,7 @@ func loadPlugin(manifest string) error {
 	if err = pin.cmd.Start(); err != nil {
 		log.Errore(err)
 	}
-	pin.src = disp.Branch(watched.BranchConfig{
-		JournalQLen: 16,
-		StatusQLen:  16,
-	})
-	plugins = append(plugins, pin)
-	go pin.start()
+	distro.addPlugin(pin)
+	go pin.start(&distro.waitClose)
 	return nil
 }

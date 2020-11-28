@@ -49,8 +49,13 @@ func (ede *Events) LastJSerial() watched.JEventID {
 }
 
 func (ede *Events) setLastJSerial(s watched.JEventID) {
-	ede.ljeSec = s / ljeSeqMax
-	ede.ljeSeq = int(s % ljeSeqMax)
+	if s < 0 {
+		ede.ljeSec = time.Now().Unix()
+		ede.ljeSeq = 0
+	} else {
+		ede.ljeSec = s / ljeSeqMax
+		ede.ljeSeq = int(s % ljeSeqMax)
+	}
 	ede.djeSeq = -1
 }
 

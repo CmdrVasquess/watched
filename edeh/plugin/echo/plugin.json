@@ -2,6 +2,7 @@
 	"off": true,
 	"name": "echo",
 	"run": "echo",
+	"args": ["-tm", "3s"],
 	"stdout": true,
-	"stderr": false
+	"stderr": true
 }

@@ -1,12 +1,13 @@
 {
-	"name": "speak",
-	"run": "speak",
-	"args": ["-tts", "espeak-ng"],
-	"stderr": true,
-	"journal": {
-		"blacklist": ["*"],
-		"whitelist": [
-			"ReceiveText"
-		]
-	}
+    "off": false,
+    "name": "speak",
+    "run": "speak",
+    "args": ["-tts", "C:\\Program Files\\eSpeak NG\\espeak-ng.exe", "-v"],
+    "stderr": true,
+    "journal": {
+	"blacklist": ["*"],
+	"whitelist": [
+	    "ReceiveText"
+	]
+    }
 }

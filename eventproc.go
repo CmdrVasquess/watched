@@ -53,6 +53,8 @@ const (
 
 type JEventID = int64
 
+const StartNow JEventID = -1
+
 type JounalEvent struct {
 	Serial JEventID
 	Event  RawEvent

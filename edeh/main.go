@@ -1,13 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 
 	"github.com/CmdrVasquess/watched"
 	"github.com/CmdrVasquess/watched/jdir"
@@ -18,16 +18,18 @@ import (
 const configName = "edeh.json"
 
 var (
-	fJDir        string
-	fWatchLatest bool
-	fPluginPath  string
-	fData        string
+	fJDir           string
+	fWatchLatest    bool
+	fPluginPath     string
+	fData           string
+	fOld            bool
+	fPinOff, fPinOn string
 
 	config struct {
 		Version string
 		LastSer int64
 	}
-	disp watched.RecvToSrc
+	distro distributor
 )
 
 func readConfig() error {
@@ -64,28 +66,6 @@ func writeConfig() error {
 	return os.Rename(tmpFile, cfgFile)
 }
 
-func journalEvent(ser int64, revt watched.RawEvent) {
-	log.Infof("journal event: %s", string(revt))
-	if ser <= config.LastSer {
-		return
-	} else {
-		config.LastSer = ser
-	}
-	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "%d ", ser)
-	buf.Write(revt)
-	buf.WriteByte('\n')
-	for _, pin := range plugins {
-		if err := pin.sendJournal(buf.Bytes()); err != nil {
-			log.Errore(err)
-		}
-	}
-}
-
-func statusEvent(typ watched.StatusType, revt watched.RawEvent) {
-	log.Infof("%s: %s", typ, string(revt))
-}
-
 func mustJournalDir() string {
 	res, err := jdir.FindJournalDir()
 	if err != nil {
@@ -107,12 +87,29 @@ func flags() {
 		"Manually set the directory with ED's journal files")
 	flag.BoolVar(&fWatchLatest, "watch-latest", true,
 		"Start with watching latest journal file")
-	flag.StringVar(&fPluginPath, "p", "./plugins",
+	flag.StringVar(&fPluginPath, "p", "./plugin",
 		"Set plugin path")
 	flag.StringVar(&fData, "d", mustFindDataDir(), "Directory where data is stored")
+	flag.BoolVar(&fOld, "old", false, "Accept past events")
+	flag.StringVar(&fPinOff, "off", "",
+		"Comma separated list of plugins to switch off")
+	flag.StringVar(&fPinOn, "on", "",
+		"Comma separated list of plugins to switch on")
 	flag.Parse()
 	if fJDir == "" {
 		fJDir = mustJournalDir()
+	}
+	if fPinOff != "" {
+		pins := strings.Split(fPinOff, ",")
+		for _, pin := range pins {
+			pinSwitches[pin] = false
+		}
+	}
+	if fPinOn != "" {
+		pins := strings.Split(fPinOn, ",")
+		for _, pin := range pins {
+			pinSwitches[pin] = true
+		}
 	}
 }
 
@@ -133,7 +130,11 @@ func main() {
 			log.Fatale(err)
 		}
 	}
-	watchED := jdir.NewEvents(fJDir, &disp, nil)
+	var opts *jdir.Options
+	if !fOld {
+		opts = &jdir.Options{JSerial: watched.StartNow}
+	}
+	watchED := jdir.NewEvents(fJDir, &distro, opts)
 	loadPlugins(fPluginPath)
 	go watchED.Start(latestJournal)
 	sigs := make(chan os.Signal)
@@ -145,5 +146,6 @@ func main() {
 	if err := writeConfig(); err != nil {
 		log.Errore(err)
 	}
+	distro.waitClose.Wait()
 	log.Infos("bye!")
 }

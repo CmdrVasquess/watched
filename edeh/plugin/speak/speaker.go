@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os/exec"
 
 	"git.fractalqb.de/fractalqb/ggja"
@@ -10,7 +11,8 @@ import (
 )
 
 type Speaker struct {
-	Exe string
+	Exe     string
+	Verbose bool
 }
 
 func (spk *Speaker) Journal(e watched.JounalEvent) (err error) {
@@ -21,7 +23,14 @@ func (spk *Speaker) Journal(e watched.JounalEvent) (err error) {
 	evt := ggja.Obj{Bare: event}
 	switch evt.MStr("event") {
 	case "ReceiveText":
-		text := fmt.Sprintf("From \"%s\": %s", evt.MStr("From"), evt.MStr("Message"))
+		msg := evt.Str("Message_Localised", "")
+		if msg == "" {
+			msg = evt.MStr("Message")
+		}
+		text := fmt.Sprintf("From \"%s\": %s", evt.MStr("From"), msg)
+		if spk.Verbose {
+			log.Println(text)
+		}
 		cmd := exec.Command(spk.Exe, text)
 		err = cmd.Run()
 	}
