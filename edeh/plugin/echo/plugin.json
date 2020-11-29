@@ -1,8 +1,8 @@
 {
-	"off": true,
-	"name": "echo",
-	"run": "echo",
-	"args": ["-tm", "3s"],
-	"stdout": true,
-	"stderr": true
+    "off": true,
+    "name": "echo",
+    "run": "echo",
+    "args": [],
+    "stdout": true,
+    "stderr": true
 }

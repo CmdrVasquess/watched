@@ -5,9 +5,12 @@
     "args": ["-tts", "C:\\Program Files\\eSpeak NG\\espeak-ng.exe", "-v"],
     "stderr": true,
     "journal": {
-	"blacklist": ["*"],
-	"whitelist": [
-	    "ReceiveText"
-	]
+		"blacklist": ["*"],
+		"whitelist": [
+	    	"ReceiveText"
+		]
+    },
+    "status": {
+    	"blacklist": ["*"]
     }
 }

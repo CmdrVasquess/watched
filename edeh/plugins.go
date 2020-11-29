@@ -46,6 +46,18 @@ func (l bwList) Whitelisted(e string) bool {
 	return l.Index(e) >= 0
 }
 
+type BlackWhiteList struct {
+	Blacklist bwList
+	Whitelist bwList
+}
+
+func (bw *BlackWhiteList) Filter(s string) bool {
+	if bw.Blacklist.Blacklisted(s) {
+		return bw.Whitelist.Whitelisted(s)
+	}
+	return true
+}
+
 type plugin struct {
 	Name    string
 	Off     bool
@@ -54,10 +66,8 @@ type plugin struct {
 	Wdir    string   `json:",omitempty"`
 	Stdout  bool     `json:",omitempty"`
 	Stderr  bool     `json:",omitempty"`
-	Journal struct {
-		Blacklist bwList
-		Whitelist bwList
-	}
+	Journal BlackWhiteList
+	Status  BlackWhiteList
 	rootDir string
 	cmd     *exec.Cmd
 	pipe    io.WriteCloser
@@ -130,16 +140,19 @@ func (pin *plugin) start(closed *sync.WaitGroup) {
 }
 
 func (pin *plugin) sendJournal(je *jEvent) error {
-	if pin.Journal.Blacklist.Blacklisted(je.evt) &&
-		!pin.Journal.Whitelist.Whitelisted(je.evt) {
-		return nil
+	if pin.Journal.Filter(je.evt) {
+		_, err := pin.pipe.Write(je.msg)
+		return err
 	}
-	_, err := pin.pipe.Write(je.msg)
-	return err
+	return nil
 }
 
 func (pin *plugin) sendStatus(se *sEvent) error {
-	return fmt.Errorf("NYI %s: %s", se.Type, string(se.Event))
+	if pin.Status.Filter(se.Type.String()) {
+		_, err := pin.pipe.Write(se.msg)
+		return err
+	}
+	return nil
 }
 
 func loadPlugins(path string) {

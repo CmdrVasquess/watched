@@ -24,6 +24,7 @@ var (
 	fData           string
 	fOld            bool
 	fPinOff, fPinOn string
+	fNet            string
 
 	config struct {
 		Version string
@@ -95,6 +96,7 @@ func flags() {
 		"Comma separated list of plugins to switch off")
 	flag.StringVar(&fPinOn, "on", "",
 		"Comma separated list of plugins to switch on")
+	flag.StringVar(&fNet, "net", "", "Load net configuration file")
 	flag.Parse()
 	if fJDir == "" {
 		fJDir = mustJournalDir()
@@ -135,6 +137,12 @@ func main() {
 		opts = &jdir.Options{JSerial: watched.StartNow}
 	}
 	watchED := jdir.NewEvents(fJDir, &distro, opts)
+	if fNet != "" {
+		err := distro.load(fNet)
+		if err != nil {
+			log.Errore(err)
+		}
+	}
 	loadPlugins(fPluginPath)
 	go watchED.Start(latestJournal)
 	sigs := make(chan os.Signal)

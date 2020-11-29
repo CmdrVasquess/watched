@@ -34,7 +34,7 @@ func RunRecv(r watched.EventRecv, rd io.Reader) error {
 		if ser, err := strconv.ParseInt(prefix, 10, 64); err == nil {
 			err = r.Journal(watched.JounalEvent{
 				Serial: ser,
-				Event:  bytes.TrimSpace(scn.Bytes()[sep:]),
+				Event:  bytes.Repeat(bytes.TrimSpace(scn.Bytes()[sep:]), 1),
 			})
 			if err != nil {
 				log.Errore(err)
@@ -44,7 +44,7 @@ func RunRecv(r watched.EventRecv, rd io.Reader) error {
 		} else {
 			err = r.Status(watched.StatusEvent{
 				Type:  sty,
-				Event: bytes.TrimSpace(scn.Bytes()[sep:]),
+				Event: bytes.Repeat(bytes.TrimSpace(scn.Bytes()[sep:]), 1),
 			})
 			if err != nil {
 				log.Errore(err)

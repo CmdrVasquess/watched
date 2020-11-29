@@ -1,6 +1,7 @@
 package jdir
 
 import (
+	"bytes"
 	"io/ioutil"
 	"time"
 
@@ -68,10 +69,16 @@ func (ede *Events) onJournal(raw []byte) {
 	if ede.checkNewJournalEvent(t.Unix()) {
 		ede.recv.Journal(watched.JounalEvent{
 			Serial: ede.LastJSerial(),
-			Event:  raw,
+			Event:  bytes.Repeat(raw, 1),
 		})
 	}
 }
+
+var (
+	statReplaceNl  = []byte{'\n'}
+	statReplaceCr  = []byte{'\r'}
+	statReplaceSpc = []byte{' '}
+)
 
 func (ede *Events) onStat(event watched.StatusType, file string) {
 	raw, err := ioutil.ReadFile(file)
@@ -79,9 +86,11 @@ func (ede *Events) onStat(event watched.StatusType, file string) {
 		log.Errore(err) // TODO be more descriptive
 		return
 	}
+	raw = bytes.ReplaceAll(raw, statReplaceNl, statReplaceSpc)
+	raw = bytes.ReplaceAll(raw, statReplaceCr, statReplaceSpc)
 	ede.recv.Status(watched.StatusEvent{
 		Type:  event,
-		Event: raw,
+		Event: bytes.Repeat(raw, 1),
 	})
 }
 

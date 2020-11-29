@@ -23,11 +23,19 @@ func (spk *Speaker) Journal(e watched.JounalEvent) (err error) {
 	evt := ggja.Obj{Bare: event}
 	switch evt.MStr("event") {
 	case "ReceiveText":
+		from := evt.Str("From_Localised", "")
+		if from == "" {
+			from = evt.MStr("From")
+		}
 		msg := evt.Str("Message_Localised", "")
 		if msg == "" {
 			msg = evt.MStr("Message")
 		}
-		text := fmt.Sprintf("From \"%s\": %s", evt.MStr("From"), msg)
+		text := fmt.Sprintf("From \"%s\": %s", from, msg)
+		mchn := evt.MStr("Channel") // squadron npc local player starsystem
+		if mchn == "npc" {
+			return nil
+		}
 		if spk.Verbose {
 			log.Println(text)
 		}

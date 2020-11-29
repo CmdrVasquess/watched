@@ -23,8 +23,7 @@ func PeekTime(str []byte) (t time.Time, err error) {
 }
 
 func PeekEvent(str []byte) (event string, err error) {
-	idx := bytes.Index(str, timestampTag)
-	idx = bytes.Index(str, eventTag)
+	idx := bytes.Index(str, eventTag)
 	if idx < 0 {
 		return "", errors.New("no event type in event")
 	}
@@ -44,7 +43,12 @@ func Peek(str []byte) (t time.Time, event string, err error) {
 	return t, event, err
 }
 
+const (
+	timestamTagStr = `"timestamp":`
+	eventTagStr    = `"event":`
+)
+
 var (
-	timestampTag = []byte(`"timestamp":`)
-	eventTag     = []byte(`"event":`)
+	timestampTag = []byte(timestamTagStr)
+	eventTag     = []byte(eventTagStr)
 )
