@@ -5,11 +5,11 @@ import (
 	"bytes"
 	"io"
 	"os"
-	"strconv"
 
 	"git.fractalqb.de/fractalqb/c4hgol"
 	"git.fractalqb.de/fractalqb/qbsllm"
 	"github.com/CmdrVasquess/watched"
+	"github.com/CmdrVasquess/watched/internal/edeh"
 )
 
 var (
@@ -25,31 +25,10 @@ func RunRecv(r watched.EventRecv, rd io.Reader) error {
 	}
 	scn := bufio.NewScanner(rd)
 	for scn.Scan() {
-		sep := bytes.IndexAny(scn.Bytes(), " \t")
-		if sep < 1 {
-			log.Warna("no event prefix in `line`", scn.Text())
-			continue
-		}
-		prefix := string(scn.Bytes()[:sep])
-		if ser, err := strconv.ParseInt(prefix, 10, 64); err == nil {
-			err = r.Journal(watched.JounalEvent{
-				Serial: ser,
-				Event:  bytes.Repeat(bytes.TrimSpace(scn.Bytes()[sep:]), 1),
-			})
-			if err != nil {
-				log.Errore(err)
-			}
-		} else if sty := watched.ParseStatusType(prefix); sty == 0 {
-			log.Warna("Unknown `status type` in `line`", prefix, scn.Text())
-		} else {
-			err = r.Status(watched.StatusEvent{
-				Type:  sty,
-				Event: bytes.Repeat(bytes.TrimSpace(scn.Bytes()[sep:]), 1),
-			})
-			if err != nil {
-				log.Errore(err)
-			}
+		err := edeh.Messgage(r, bytes.Repeat(scn.Bytes(), 1))
+		if err != nil {
+			log.Errore(err)
 		}
 	}
-	return r.Close()
+	return nil
 }

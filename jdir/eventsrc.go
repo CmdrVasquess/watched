@@ -88,6 +88,7 @@ func (ede *Events) onStat(event watched.StatusType, file string) {
 	}
 	raw = bytes.ReplaceAll(raw, statReplaceNl, statReplaceSpc)
 	raw = bytes.ReplaceAll(raw, statReplaceCr, statReplaceSpc)
+	raw = bytes.TrimSpace(raw)
 	ede.recv.Status(watched.StatusEvent{
 		Type:  event,
 		Event: bytes.Repeat(raw, 1),

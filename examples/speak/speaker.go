@@ -1,4 +1,4 @@
-package main
+package speak
 
 import (
 	"encoding/json"
@@ -32,10 +32,7 @@ func (spk *Speaker) Journal(e watched.JounalEvent) (err error) {
 			msg = evt.MStr("Message")
 		}
 		text := fmt.Sprintf("From \"%s\": %s", from, msg)
-		mchn := evt.MStr("Channel") // squadron npc local player starsystem
-		if mchn == "npc" {
-			return nil
-		}
+		//mchn := evt.MStr("Channel") // squadron npc local player starsystem
 		if spk.Verbose {
 			log.Println(text)
 		}
