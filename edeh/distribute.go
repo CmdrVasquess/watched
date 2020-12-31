@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/CmdrVasquess/watched"
 )
@@ -17,22 +18,32 @@ type tcpClient struct {
 	Journal BlackWhiteList
 	Status  BlackWhiteList
 
-	conn net.Conn
+	conn    net.Conn
+	connErr time.Time
+	// TODO configurable reconnect delay
 }
 
 func (c *tcpClient) jounrnal(event string, msg []byte) {
 	if c.Journal.Filter(event) {
 		var err error
 		if c.conn == nil {
-			log.Infoa("connect to `TCP client`", c.Addr)
+			if time.Now().Sub(c.connErr) < time.Second {
+				log.Warna("drop journal event while waiting for reconnect delay")
+				return
+			}
+			log.Infoa("connect to `TCP consumer`", c.Addr)
 			if c.conn, err = net.Dial("tcp", c.Addr); err != nil {
-				log.Warne(err)
+				log.Errore(err)
+				c.connErr = time.Now()
 				return
 			}
 		}
 		_, err = c.conn.Write(msg)
 		if err != nil {
-			log.Errora("send journal to `TCP client` `err`", c.Addr, err)
+			log.Errora("disconnect: journal to `TCP consumer` `err`", c.Addr, err)
+			c.conn.Close()
+			c.conn = nil
+			c.connErr = time.Now()
 		}
 	}
 }
@@ -41,15 +52,23 @@ func (c *tcpClient) status(event string, msg []byte) {
 	if c.Status.Filter(event) {
 		var err error
 		if c.conn == nil {
-			log.Infoa("connect to `TCP client`", c.Addr)
+			if time.Now().Sub(c.connErr) < time.Second {
+				log.Warna("drop status event while waiting for reconnect delay")
+				return
+			}
+			log.Infoa("connect to `TCP consumer`", c.Addr)
 			if c.conn, err = net.Dial("tcp", c.Addr); err != nil {
-				log.Warne(err)
+				log.Errore(err)
+				c.connErr = time.Now()
 				return
 			}
 		}
 		_, err = c.conn.Write(msg)
 		if err != nil {
-			log.Errora("send status to `TCP client` `err`", c.Addr, err)
+			log.Errora("disconnect: status to `TCP consumer` `err`", c.Addr, err)
+			c.conn.Close()
+			c.conn = nil
+			c.connErr = time.Now()
 		}
 	}
 }

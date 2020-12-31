@@ -1,0 +1,19 @@
+{
+    "off": false,
+    "name": "screenshot",
+    "run": "screenshot",
+    "args": ["-d", "D:\\Screenshots", "-a", "16:9", "-s", "-rm"],
+    "stderr": true,
+    "journal": {
+		"blacklist": ["*"],
+		"whitelist": [
+			"Commander",
+			"LoadGame",
+			"Shutdown",
+			"Screenshot"
+		]
+    },
+    "status": {
+    	"blacklist": ["*"]
+    }
+}
