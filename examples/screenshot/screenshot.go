@@ -109,16 +109,19 @@ var jehdl = map[string]func(*Screenshot, ggja.Obj){
 func jeCommander(scrns *Screenshot, e ggja.Obj) {
 	scrns.FID = e.MStr("FID")
 	scrns.Cmdr = e.MStr("Name")
+	log.Printf("switch to commander %s '%s'", scrns.FID, scrns.Cmdr)
 }
 
 func jeLoadGame(scrns *Screenshot, e ggja.Obj) {
 	scrns.FID = e.MStr("FID")
 	scrns.Cmdr = e.MStr("Commander")
+	log.Printf("switch to commander %s '%s'", scrns.FID, scrns.Cmdr)
 }
 
 func jeShutdown(scrns *Screenshot, e ggja.Obj) {
 	scrns.FID = ""
 	scrns.Cmdr = ""
+	log.Println("switch to no commander")
 }
 
 func jeScreenshot(scrns *Screenshot, e ggja.Obj) {

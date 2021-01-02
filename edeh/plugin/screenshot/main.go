@@ -55,6 +55,7 @@ func main() {
 	flag.BoolVar(&scrns.RmOrig, "rm", false,
 		"Remove original BMP after conversion")
 	flag.Parse()
+	log.Println("start edeh plugin 'screenshot'")
 	setAspect()
 	defer scrns.Close()
 	plugin.RunRecv(&scrns, nil)

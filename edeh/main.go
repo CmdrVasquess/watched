@@ -25,6 +25,7 @@ var (
 	fOld            bool
 	fPinOff, fPinOn string
 	fNet            string
+	fManifests      = "plugin.json"
 
 	config struct {
 		Version string
@@ -97,6 +98,9 @@ func flags() {
 	flag.StringVar(&fPinOn, "on", "",
 		"Comma separated list of plugins to switch on")
 	flag.StringVar(&fNet, "net", "", "Load net configuration file")
+	flag.StringVar(&fManifests, "manifests", fManifests,
+		"List of potenitial manifest file names separated by '"+
+			string(filepath.ListSeparator)+"'")
 	flag.Parse()
 	if fJDir == "" {
 		fJDir = mustJournalDir()
@@ -143,7 +147,8 @@ func main() {
 			log.Errore(err)
 		}
 	}
-	loadPlugins(fPluginPath)
+	loadPlugins(fPluginPath,
+		strings.Split(fManifests, string(filepath.ListSeparator)))
 	go watchED.Start(latestJournal)
 	sigs := make(chan os.Signal)
 	signal.Notify(sigs, os.Interrupt)

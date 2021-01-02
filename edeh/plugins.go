@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,7 +15,6 @@ import (
 	"github.com/CmdrVasquess/watched"
 )
 
-const pluginManifest = "plugin.json"
 const shutdownDelay = 5 * time.Second
 
 var pinSwitches = make(map[string]bool)
@@ -155,30 +155,53 @@ func (pin *plugin) sendStatus(se *sEvent) error {
 	return nil
 }
 
-func loadPlugins(path string) {
+func loadPlugins(path string, manifests []string) {
 	pdirs := filepath.SplitList(path)
 	for _, dir := range pdirs {
-		loadPluginsDir(dir)
+		loadPluginsDir(dir, manifests)
 	}
 }
 
-func loadPluginsDir(dir string) {
-	log.Infoa("search plugins in `dir`", dir)
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && info.Name() == pluginManifest {
-			if err := loadPlugin(path); err != nil {
+func loadPluginsDir(dir string, manifests []string) {
+	for _, m := range manifests {
+		mf := filepath.Join(dir, m)
+		if _, err := os.Stat(mf); err == nil {
+			if err = loadPlugin(mf); err != nil {
 				log.Errore(err)
 			}
+			return
 		}
-		return nil
-	})
+	}
+	ls, err := ioutil.ReadDir(dir)
 	if err != nil {
-		log.Fatale(err)
+		log.Errore(err)
+		return
+	}
+	for _, l := range ls {
+		if !l.IsDir() {
+			continue
+		}
+		loadPluginsDir(filepath.Join(dir, l.Name()), manifests)
 	}
 }
+
+// func loadPluginsDir(dir string) {
+// 	log.Infoa("search plugins in `dir`", dir)
+// 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+// 		if err != nil {
+// 			return err
+// 		}
+// 		if !info.IsDir() && info.Name() == pluginManifest {
+// 			if err := loadPlugin(path); err != nil {
+// 				log.Errore(err)
+// 			}
+// 		}
+// 		return nil
+// 	})
+// 	if err != nil {
+// 		log.Fatale(err)
+// 	}
+//}
 
 func readPluginManifest(file string) (*plugin, error) {
 	rd, err := os.Open(file)
