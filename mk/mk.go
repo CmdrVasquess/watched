@@ -52,7 +52,7 @@ func init() {
 
 	tasks.Def(DEPS, func(dir *gomk.WDir) {
 		task.DepsGraph(dir.Build())
-	})
+	}, TEST)
 }
 
 func main() {

@@ -33,7 +33,7 @@ func (r *Receiver) Run(wrecv watched.EventRecv) (err error) {
 	}
 	lstn.Close()
 	defer conn.Close()
-	log.Infoa("client connected from `addr`", conn.RemoteAddr())
+	log.Infoa("event source connected from `addr`", conn.RemoteAddr())
 	scn := bufio.NewScanner(conn)
 	for scn.Scan() {
 		err := edeh.Messgage(wrecv, bytes.Repeat(scn.Bytes(), 1))

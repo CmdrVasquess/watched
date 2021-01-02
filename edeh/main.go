@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"git.fractalqb.de/fractalqb/c4hgol"
+
 	"github.com/CmdrVasquess/watched"
 	"github.com/CmdrVasquess/watched/jdir"
 )
@@ -18,6 +20,7 @@ import (
 const configName = "edeh.json"
 
 var (
+	fLog            string
 	fJDir           string
 	fWatchLatest    bool
 	fPluginPath     string
@@ -85,6 +88,7 @@ func mustFindDataDir() string {
 }
 
 func flags() {
+	flag.StringVar(&fLog, c4hgol.DefaultFlagLevel, "", c4hgol.LevelCfgDoc(nil))
 	flag.StringVar(&fJDir, "j", "",
 		"Manually set the directory with ED's journal files")
 	flag.BoolVar(&fWatchLatest, "watch-latest", true,
@@ -102,6 +106,7 @@ func flags() {
 		"List of potenitial manifest file names separated by '"+
 			string(filepath.ListSeparator)+"'")
 	flag.Parse()
+	c4hgol.SetLevel(logCfg, fLog, nil)
 	if fJDir == "" {
 		fJDir = mustJournalDir()
 	}
@@ -145,6 +150,9 @@ func main() {
 		err := distro.load(fNet)
 		if err != nil {
 			log.Errore(err)
+		}
+		for _, tcp := range distro.TCP {
+			log.Infof("TCP client: %s", tcp.Addr)
 		}
 	}
 	loadPlugins(fPluginPath,
