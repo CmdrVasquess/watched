@@ -10,20 +10,22 @@ import (
 )
 
 type Events struct {
-	Stop   chan internal.StopEvent
-	recv   watched.EventRecv
-	jdir   *JournalDir
-	ljeSec int64 // last journal event UNIX seconds
-	ljeSeq int   // seq withn ljeSec
-	djeSeq int
+	Stop     chan internal.StopEvent
+	recv     watched.EventRecv
+	jdir     *JournalDir
+	ljeSec   int64 // last journal event UNIX seconds
+	ljeSeq   int   // seq withn ljeSec
+	djeSeq   int
+	serIndep []string
 }
 
 func NewEvents(dir string, r watched.EventRecv, opt *Options) *Events {
 	jdir := &JournalDir{Dir: dir}
 	res := &Events{
-		Stop: make(chan internal.StopEvent),
-		recv: r,
-		jdir: jdir,
+		Stop:     make(chan internal.StopEvent),
+		recv:     r,
+		jdir:     jdir,
+		serIndep: opt.SerialIndependent,
 	}
 	jdir.PerJLine = res.onJournal
 	jdir.OnStatChg = res.onStat
@@ -67,7 +69,14 @@ func (ede *Events) onJournal(raw []byte) {
 		return
 	}
 	if ede.checkNewJournalEvent(t.Unix()) {
-		ede.recv.Journal(watched.JounalEvent{
+		ede.recv.OnJournalEvent(watched.JounalEvent{
+			Serial: ede.LastJSerial(),
+			Event:  bytes.Repeat(raw, 1),
+		})
+	} else if e, err := watched.PeekEvent(raw); err != nil {
+		log.Errore(err)
+	} else if ede.isSerIndep(e) {
+		ede.recv.OnJournalEvent(watched.JounalEvent{
 			Serial: ede.LastJSerial(),
 			Event:  bytes.Repeat(raw, 1),
 		})
@@ -89,7 +98,7 @@ func (ede *Events) onStat(event watched.StatusType, file string) {
 	raw = bytes.ReplaceAll(raw, statReplaceNl, statReplaceSpc)
 	raw = bytes.ReplaceAll(raw, statReplaceCr, statReplaceSpc)
 	raw = bytes.TrimSpace(raw)
-	ede.recv.Status(watched.StatusEvent{
+	ede.recv.OnStatusEvent(watched.StatusEvent{
 		Type:  event,
 		Event: bytes.Repeat(raw, 1),
 	})
@@ -114,8 +123,18 @@ func (ede *Events) checkNewJournalEvent(uxsec int64) bool {
 	return true
 }
 
+func (ede *Events) isSerIndep(evt string) bool {
+	for _, si := range ede.serIndep {
+		if si == evt {
+			return true
+		}
+	}
+	return false
+}
+
 type Options struct {
-	PollWaitMin time.Duration
-	PollWaitMax time.Duration
-	JSerial     int64
+	PollWaitMin       time.Duration
+	PollWaitMax       time.Duration
+	JSerial           int64
+	SerialIndependent []string
 }

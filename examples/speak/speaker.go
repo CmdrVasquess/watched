@@ -15,7 +15,7 @@ type Speaker struct {
 	Verbose bool
 }
 
-func (spk *Speaker) Journal(e watched.JounalEvent) (err error) {
+func (spk *Speaker) OnJournalEvent(e watched.JounalEvent) (err error) {
 	event := make(ggja.BareObj)
 	if err = json.Unmarshal(e.Event, &event); err != nil {
 		return err
@@ -42,6 +42,6 @@ func (spk *Speaker) Journal(e watched.JounalEvent) (err error) {
 	return err
 }
 
-func (spk *Speaker) Status(e watched.StatusEvent) error { return nil }
+func (spk *Speaker) OnStatusEvent(e watched.StatusEvent) error { return nil }
 
 func (spk *Speaker) Close() error { return nil }

@@ -100,7 +100,7 @@ func (d *distributor) addPlugin(pin *plugin) {
 	d.pins = append(d.pins, pin)
 }
 
-func (d *distributor) Journal(e watched.JounalEvent) error {
+func (d *distributor) OnJournalEvent(e watched.JounalEvent) error {
 	event, err := e.Event.PeekEvent()
 	if err != nil {
 		return err
@@ -126,7 +126,7 @@ func (d *distributor) Journal(e watched.JounalEvent) error {
 	return nil
 }
 
-func (d *distributor) Status(e watched.StatusEvent) error {
+func (d *distributor) OnStatusEvent(e watched.StatusEvent) error {
 	var buf bytes.Buffer
 	buf.WriteString(e.Type.String())
 	buf.WriteByte(' ')

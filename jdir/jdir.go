@@ -80,7 +80,7 @@ func (jd *JournalDir) Watch(startWith string) {
 				log.Debuga("ignore `event` on non-journal `file`", fse.Op, fse.Name)
 			} else if fse.Op&fsnotify.Create == fsnotify.Create {
 				cleanName := filepath.Clean(fse.Name)
-				log.Debuga("enqueue new `journal`", cleanName)
+				log.Debuga("enqueue newlatestJournal `journal`", cleanName)
 				watchList <- cleanName
 			}
 		case err = <-watch.Errors:

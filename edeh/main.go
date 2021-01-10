@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/CmdrVasquess/stated/journal"
+
 	"git.fractalqb.de/fractalqb/c4hgol"
 
 	"github.com/CmdrVasquess/watched"
@@ -141,9 +143,15 @@ func main() {
 			log.Fatale(err)
 		}
 	}
-	var opts *jdir.Options
+	opts := &jdir.Options{
+		SerialIndependent: []string{
+			journal.FileheaderEvent.String(),
+			journal.CommanderEvent.String(),
+			journal.ShutdownEvent.String(),
+		},
+	}
 	if !fOld {
-		opts = &jdir.Options{JSerial: watched.StartNow}
+		opts.JSerial = watched.StartNow
 	}
 	watchED := jdir.NewEvents(fJDir, &distro, opts)
 	if fNet != "" {

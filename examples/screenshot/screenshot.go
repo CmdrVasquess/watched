@@ -45,15 +45,28 @@ func (scrns *Screenshot) OutDir(t time.Time, sys, body string) string {
 	return path
 }
 
+var fielnameReplc = strings.NewReplacer(
+	":", "_",
+	";", "_",
+	" ", "_",
+	"'", "",
+)
+
 func (scrns *Screenshot) OutFilePat(t time.Time, sys, body string) string {
+	const sep = "."
 	base := t.Format("060102150405.%d")
 	if sys != "" {
-		sys = strings.ReplaceAll(sys, " ", "_")
-		base += "-" + sys
+		base += sep + fielnameReplc.Replace(sys)
 	}
-	if body != "" {
-		body = strings.ReplaceAll(body, " ", "_")
-		base += "-" + body
+	if body != "" && body != sys {
+		if strings.HasPrefix(body, sys) {
+			tmp := body[len(sys):]
+			tmp = strings.TrimSpace(tmp)
+			tmp = fielnameReplc.Replace(tmp)
+			base += sep + tmp
+		} else {
+			base += sep + fielnameReplc.Replace(body)
+		}
 	}
 	base += ".jpg"
 	return base
@@ -70,7 +83,7 @@ func outFileIn(dir, pat string) string {
 	}
 }
 
-func (scrns *Screenshot) Journal(e watched.JounalEvent) (err error) {
+func (scrns *Screenshot) OnJournalEvent(e watched.JounalEvent) (err error) {
 	evt, err := e.Event.PeekEvent()
 	if err != nil {
 		return err
@@ -95,7 +108,7 @@ func (scrns *Screenshot) Journal(e watched.JounalEvent) (err error) {
 	return nil
 }
 
-func (scrns *Screenshot) Status(e watched.StatusEvent) error { return nil }
+func (scrns *Screenshot) OnStatusEvent(e watched.StatusEvent) error { return nil }
 
 func (scrns *Screenshot) Close() error { return nil }
 
@@ -107,15 +120,23 @@ var jehdl = map[string]func(*Screenshot, ggja.Obj){
 }
 
 func jeCommander(scrns *Screenshot, e ggja.Obj) {
-	scrns.FID = e.MStr("FID")
-	scrns.Cmdr = e.MStr("Name")
-	log.Printf("switch to commander %s '%s'", scrns.FID, scrns.Cmdr)
+	fid := e.MStr("FID")
+	name := e.MStr("Name")
+	if fid != scrns.FID {
+		log.Printf("switch to commander %s '%s'", fid, name)
+	}
+	scrns.FID = fid
+	scrns.Cmdr = name
 }
 
 func jeLoadGame(scrns *Screenshot, e ggja.Obj) {
-	scrns.FID = e.MStr("FID")
-	scrns.Cmdr = e.MStr("Commander")
-	log.Printf("switch to commander %s '%s'", scrns.FID, scrns.Cmdr)
+	fid := e.MStr("FID")
+	name := e.MStr("Commander")
+	if fid != scrns.FID {
+		log.Printf("switch to commander %s '%s'", fid, name)
+	}
+	scrns.FID = fid
+	scrns.Cmdr = name
 }
 
 func jeShutdown(scrns *Screenshot, e ggja.Obj) {

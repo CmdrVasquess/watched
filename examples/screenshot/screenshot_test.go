@@ -11,5 +11,5 @@ func ExampleOutFileIn() {
 	file := outFileIn(".", pat)
 	fmt.Println(file)
 	// Output:
-	// 010101000000.0-SYS-BODY.jpg
+	// 010101000000.0.SYS.BODY.jpg
 }

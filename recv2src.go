@@ -27,14 +27,14 @@ func (rs *RecvToSrc) Branch(cfg BranchConfig) EventSrc {
 	return res.EventSrc
 }
 
-func (rs *RecvToSrc) Journal(e JounalEvent) error {
+func (rs *RecvToSrc) OnJournalEvent(e JounalEvent) error {
 	for _, b := range rs.out {
 		b.j <- e
 	}
 	return nil
 }
 
-func (rs *RecvToSrc) Status(e StatusEvent) error {
+func (rs *RecvToSrc) OnStatusEvent(e StatusEvent) error {
 	for _, b := range rs.out {
 		b.s <- e
 	}

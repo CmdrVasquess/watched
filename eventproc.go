@@ -71,8 +71,8 @@ type EventSrc struct {
 }
 
 type EventRecv interface {
-	Journal(e JounalEvent) error
-	Status(e StatusEvent) error
+	OnJournalEvent(e JounalEvent) error
+	OnStatusEvent(e StatusEvent) error
 	Close() error
 }
 
