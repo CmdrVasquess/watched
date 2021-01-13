@@ -23,7 +23,7 @@ type tcpClient struct {
 	// TODO configurable reconnect delay
 }
 
-func (c *tcpClient) jounrnal(event string, msg []byte) {
+func (c *tcpClient) jounrnal(event string, msg []byte, reconn [][]byte) {
 	if c.Journal.Filter(event) {
 		var err error
 		if c.conn == nil {
@@ -36,6 +36,11 @@ func (c *tcpClient) jounrnal(event string, msg []byte) {
 				log.Errore(err)
 				c.connErr = time.Now()
 				return
+			}
+			for _, rcm := range reconn {
+				if _, err = c.conn.Write(rcm); err != nil {
+					log.Errore(err)
+				}
 			}
 		}
 		_, err = c.conn.Write(msg)
@@ -74,7 +79,8 @@ func (c *tcpClient) status(event string, msg []byte) {
 }
 
 type distributor struct {
-	TCP []tcpClient
+	TCP       []tcpClient
+	reconnect [][]byte
 
 	pins      []*plugin
 	waitClose sync.WaitGroup
@@ -118,7 +124,15 @@ func (d *distributor) OnJournalEvent(e watched.JounalEvent) error {
 		msg:         buf.Bytes(),
 	}
 	for i := range d.TCP {
-		d.TCP[i].jounrnal(event, je.msg)
+		d.TCP[i].jounrnal(event, je.msg, d.reconnect)
+	}
+	switch event {
+	case "Fileheader":
+		d.reconnect = [][]byte{je.msg}
+	case "Commander":
+		d.reconnect = append(d.reconnect, je.msg)
+	case "Shutdown":
+		d.reconnect = [][]byte{je.msg}
 	}
 	for _, pin := range d.pins {
 		pin.jes <- je

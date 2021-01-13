@@ -5,5 +5,5 @@ const (
 	Minor   = 4
 	Patch   = 4
 	Quality = `a`
-	BuildNo = 45
+	BuildNo = 48
 )
