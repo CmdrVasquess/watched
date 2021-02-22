@@ -2,7 +2,7 @@
     "off": false,
     "name": "speak",
     "run": "speak",
-    "args": ["-tts", "C:\\Program Files\\eSpeak NG\\espeak-ng.exe", "-v"],
+    "args": ["-v", "speak.json"],
     "stderr": true,
     "journal": {
 		"blacklist": ["*"],

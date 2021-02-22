@@ -63,7 +63,6 @@ type plugin struct {
 	Off     bool
 	Run     string
 	Args    []string `json:",omitempty"`
-	Wdir    string   `json:",omitempty"`
 	Stdout  bool     `json:",omitempty"`
 	Stderr  bool     `json:",omitempty"`
 	Journal BlackWhiteList
@@ -246,7 +245,12 @@ func loadPlugin(manifest string) error {
 	if err = checkRunPath(pin); err != nil {
 		return err
 	}
-	pin.cmd = exec.Command(pin.Run, pin.Args...)
+	exe, err := filepath.Abs(pin.Run)
+	if err != nil {
+		return err
+	}
+	pin.cmd = exec.Command(exe, pin.Args...)
+	pin.cmd.Dir = pin.rootDir
 	if pin.Stdout {
 		pin.cmd.Stdout = os.Stdout
 	}
@@ -257,7 +261,6 @@ func loadPlugin(manifest string) error {
 	if err != nil {
 		return err
 	}
-	pin.cmd.Dir = pin.Wdir
 	switch {
 	case len(pin.Journal.Blacklist) == 0:
 		pin.Journal.Blacklist = nil

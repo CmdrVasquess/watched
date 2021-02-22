@@ -1,0 +1,11 @@
+{
+	"Exe": "C:\\Program Files\\eSpeak NG\\espeak-ng.exe",
+	"Events": {
+		"ReceiveText": {
+			"Speak": {
+				"Format": "From \"%s\": %s",
+				"Args": ["From", ["Message_Localised", "Message"]]
+			}
+		}
+	}
+}
