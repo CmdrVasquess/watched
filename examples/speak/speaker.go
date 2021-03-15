@@ -34,23 +34,6 @@ func (spk *Speaker) OnJournalEvent(e watched.JounalEvent) (err error) {
 		err = cmd.Run()
 	}
 	return err
-	// switch evt.MStr("event") {
-	// case "ReceiveText":
-	// 	from := evt.Str("From_Localised", "")
-	// 	if from == "" {
-	// 		from = evt.MStr("From")
-	// 	}
-	// 	msg := evt.Str("Message_Localised", "")
-	// 	if msg == "" {
-	// 		msg = evt.MStr("Message")
-	// 	}
-	// 	text := fmt.Sprintf("From \"%s\": %s", from, msg)
-	// 	//mchn := evt.MStr("Channel") // squadron npc local player starsystem
-	// 	if spk.Verbose {
-	// 		log.Println(text)
-	// 	}
-	// }
-	// return err
 }
 
 func (spk *Speaker) OnStatusEvent(e watched.StatusEvent) error { return nil }

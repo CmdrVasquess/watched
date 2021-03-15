@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"net"
 
+	"git.fractalqb.de/fractalqb/qblog"
 	"git.fractalqb.de/fractalqb/c4hgol"
 	"git.fractalqb.de/fractalqb/qbsllm"
 	"github.com/CmdrVasquess/watched"
@@ -36,6 +37,13 @@ func (r *Receiver) Run(wrecv watched.EventRecv) (err error) {
 	log.Infoa("event source connected from `addr`", conn.RemoteAddr())
 	scn := bufio.NewScanner(conn)
 	for scn.Scan() {
+		if log.Logs(qblog.Ltrace) {
+			estr := string(scn.Text())
+			if len(estr) > 80 {
+				estr = estr[:80] + "…"
+			}
+			log.Tracef("received net event: '%s'", estr)
+		}
 		err := edeh.Messgage(wrecv, bytes.Repeat(scn.Bytes(), 1))
 		if err != nil {
 			log.Errore(err)

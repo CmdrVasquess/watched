@@ -25,7 +25,7 @@ func (evt *Event) Text(jevt ggja.Obj) string {
 	for _, arg := range evt.Speak.Args {
 		switch av := arg.(type) {
 		case string:
-			parts = append(parts, jevt.Str(av, "--"))
+			parts = append(parts, jevt.Str(av, ""))
 		case ggja.BareArr:
 			for _, path := range av {
 				p, err := ggja.Get(jevt, path)

@@ -3,6 +3,7 @@ package watched
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"time"
 
 	"git.fractalqb.de/fractalqb/c4hgol"
@@ -16,7 +17,11 @@ const Stop = internal.StopEvent(0)
 func PeekTime(str []byte) (t time.Time, err error) {
 	idx := bytes.Index(str, timestampTag)
 	if idx < 0 {
-		return time.Time{}, errors.New("no timestamp in event")
+		estr := string(str)
+		if len(estr) > 50 {
+			estr = string(str[:50]) + "…"
+		}
+		return time.Time{}, fmt.Errorf("no timestamp in event: %s", estr)
 	}
 	val := str[idx+13 : idx+33]
 	return time.Parse(time.RFC3339, string(val))

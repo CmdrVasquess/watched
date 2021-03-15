@@ -86,6 +86,7 @@ func (jd *JournalDir) Watch(startWith string) {
 		case err = <-watch.Errors:
 			log.Errora("fs-watch `err`", err)
 		case <-jd.Stop:
+			log.Debugs("sent empty filename to watch list")
 			watchList <- ""
 			<-watchList
 			log.Infos("exit journal watcher")
@@ -129,7 +130,7 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 			jrnlFile.Close()
 		}
 	}()
-	for {
+	for { // TODO Too complicated? But it works rock solid…
 		if len(jrnlName) == 0 {
 			jrnlName = <-watchFiles
 			if jrnlName == "" {
@@ -163,7 +164,9 @@ func (jd *JournalDir) pollFile(watchFiles chan string) {
 				jrnlScnr.Split(splitLogLines)
 				for jrnlScnr.Scan() {
 					line := jrnlScnr.Bytes()
-					jd.PerJLine(line)
+					if len(line) > 0 {
+						jd.PerJLine(line)
+					}
 				}
 				jrnlRdPos = newRdPos
 				sleep = 0

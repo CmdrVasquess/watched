@@ -15,7 +15,15 @@ func must(err error) {
 }
 
 func ExampleEvent_Text() {
-	var evt Event
+	var evt = Event{
+		If: [][]interface{}{
+			[]interface{}{
+				ggja.BareObj{
+					"Chan": "npc",
+				},
+			},
+		},
+	}
 	evt.Speak.Format = "From \"%s\": %s"
 	evt.Speak.Args = ggja.BareArr{
 		"From",

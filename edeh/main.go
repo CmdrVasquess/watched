@@ -104,7 +104,9 @@ func flags() {
 	flag.StringVar(&fNet, "net", "", "Load net configuration file")
 	flag.StringVar(&fManifests, "manifests", fManifests,
 		"List of potenitial manifest file names separated by '"+
-			string(filepath.ListSeparator)+"'")
+			string(filepath.ListSeparator)+`'. Use this if
+you want manifest files with non-default names. 1st match will be loaded.
+`)
 	flag.Parse()
 	c4hgol.SetLevel(logCfg, fLog, nil)
 	if fJDir == "" {

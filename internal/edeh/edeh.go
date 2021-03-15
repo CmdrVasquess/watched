@@ -14,7 +14,7 @@ func Messgage(r watched.EventRecv, msg []byte) (err error) {
 		return sllm.Error("no event prefix in `line`", string(msg))
 	}
 	prefix := string(msg[:sep])
-	if ser, err := strconv.ParseInt(prefix, 10, 64); err == nil {
+	if ser, e := strconv.ParseInt(prefix, 10, 64); e == nil {
 		err = r.OnJournalEvent(watched.JounalEvent{
 			Serial: ser,
 			Event:  bytes.Repeat(msg[sep:], 1),

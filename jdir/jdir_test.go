@@ -3,8 +3,18 @@ package jdir
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"path/filepath"
 	str "strings"
 	"testing"
+	"time"
+
+	"git.fractalqb.de/fractalqb/c4hgol"
+	"github.com/CmdrVasquess/watched/internal"
+
+	"github.com/CmdrVasquess/watched"
+
+	"git.fractalqb.de/fractalqb/pack"
 )
 
 func TestSplitEmpty(t *testing.T) {
@@ -89,4 +99,28 @@ func ExampleSplit3LineCRNL() {
 	// SCN:[foo]
 	// SCN:[bar]
 	// SCN:[baz]
+}
+
+func TestJournalBulk(t *testing.T) {
+	os.RemoveAll(t.Name())
+	os.Mkdir(t.Name(), 0700)
+	count := 0
+	if testing.Verbose() {
+		internal.LogCfg.SetLevel(c4hgol.Trace)
+	}
+	jd := JournalDir{
+		Dir:      t.Name(),
+		PerJLine: func(_ []byte) { count++ },
+		Stop:     MakeStopChan(),
+	}
+	go jd.Watch("")
+	time.Sleep(1 * time.Second)
+	const jFile = "Journal.012345678901.01.log"
+	pack.CopyFile(filepath.Join(t.Name(), jFile), jFile, nil)
+	time.Sleep(2 * time.Second)
+	jd.Stop <- watched.Stop
+	<-jd.Stop
+	if count != 190 {
+		t.Errorf("expected 190 events, got %d", count)
+	}
 }

@@ -43,6 +43,7 @@ func (c *tcpClient) jounrnal(event string, msg []byte, reconn [][]byte) {
 				}
 			}
 		}
+		log.Tracea("send `event` to TCP `receiver`", event, c.Addr)
 		_, err = c.conn.Write(msg)
 		if err != nil {
 			log.Errora("disconnect: journal to `TCP consumer` `err`", c.Addr, err)
@@ -50,6 +51,8 @@ func (c *tcpClient) jounrnal(event string, msg []byte, reconn [][]byte) {
 			c.conn = nil
 			c.connErr = time.Now()
 		}
+	} else {
+		log.Tracea("filtered `event` from TCP `receiver`", event, c.Addr)
 	}
 }
 

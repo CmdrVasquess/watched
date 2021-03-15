@@ -38,7 +38,7 @@ func NewEvents(dir string, r watched.EventRecv, opt *Options) *Events {
 }
 
 func (ede *Events) Start(withJournal string) {
-	ede.jdir.Stop = make(chan internal.StopEvent)
+	ede.jdir.Stop = MakeStopChan()
 	go ede.jdir.Watch(withJournal)
 	<-ede.Stop
 	ede.jdir.Stop <- watched.Stop
