@@ -54,6 +54,8 @@ func main() {
 		"Put a converted substitue into ED ictures directory")
 	flag.BoolVar(&scrns.RmOrig, "rm", false,
 		"Remove original BMP after conversion")
+	flag.BoolVar(&scrns.AddTags, "tags", false,
+		"Add tags to JPEG output")
 	flag.Parse()
 	log.Println("start edeh plugin 'screenshot'")
 	setAspect()

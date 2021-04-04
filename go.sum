@@ -7,6 +7,9 @@ git.fractalqb.de/fractalqb/ggja v0.10.2 h1:Dj7Xy1GGNAz1CRdXjfMNA6K3q39pIr59HiJuu
 git.fractalqb.de/fractalqb/ggja v0.10.2/go.mod h1:AIZ5hSqD4EkkA7UhzCeGfD7dS6rjs164qh1hx1B7LE8=
 git.fractalqb.de/fractalqb/gomk v0.1.0 h1:JIz9vW19q9zAXxPTt/vmLYHuEffMIAyRBuaEzBRc0oE=
 git.fractalqb.de/fractalqb/gomk v0.1.0/go.mod h1:6cT3Lmrf2l8jYrEmroA9b+Oxwr5f9dydLg7uN5JS+7o=
+git.fractalqb.de/fractalqb/nmconv v1.0.1/go.mod h1:gMsx/GoC/NtYT0LGv0kxCQF79LG7bI0QilIgLi7GD3o=
+git.fractalqb.de/fractalqb/pack v0.5.5 h1:fAm+lcX6+b5MDLJeBT6o2IXbIxkCpKCcVRwYqmMtuSg=
+git.fractalqb.de/fractalqb/pack v0.5.5/go.mod h1:fgp1GnpyqTvGkkIFA0RrMQ/XLJZqJHp8lBvdixpHPr8=
 git.fractalqb.de/fractalqb/qblog v0.10.1 h1:ZKYPNA7Cy/iSA2mWRsptVf+xeX+Lfzl0Nzm8OreagFA=
 git.fractalqb.de/fractalqb/qblog v0.10.1/go.mod h1:cQS2sL/5ZzPpCG/vjuKBfSk540bnj+w2vtF5px89L8c=
 git.fractalqb.de/fractalqb/qbsllm v0.11.1 h1:hkJ4fKVjvQAnSsN6r+YtEfJVOjRwCxAyIohsg659tbY=
@@ -27,6 +30,9 @@ github.com/fsnotify/fsnotify v1.4.9 h1:hsms1Qyu0jgnwNXIxa+/V/PDsU6CfLf6CNO8H7IWo
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
+github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
+github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
+github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
@@ -40,6 +46,7 @@ github.com/spf13/jwalterweatherman v1.0.0/go.mod h1:cQK4TGJAtQXfYWX+Ddv3mKDzgVb6
 github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
+github.com/stvp/assert v0.0.0-20170616060220-4bc16443988b/go.mod h1:CC7OXV9IjEZRA+znA6/Kz5vbSwh69QioernOHeDCatU=
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=

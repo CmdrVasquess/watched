@@ -37,5 +37,5 @@ func ExampleEvent_Text() {
 	txt := evt.Text(ggja.Obj{Bare: jevt})
 	fmt.Println(txt)
 	// Output:
-	// _
+	// From "John Doe": RoC Commander, o7!
 }

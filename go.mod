@@ -6,6 +6,8 @@ require (
 	git.fractalqb.de/fractalqb/c4hgol v0.10.4
 	git.fractalqb.de/fractalqb/ggja v0.10.2
 	git.fractalqb.de/fractalqb/gomk v0.1.0
+	git.fractalqb.de/fractalqb/pack v0.5.5
+	git.fractalqb.de/fractalqb/qblog v0.10.1
 	git.fractalqb.de/fractalqb/qbsllm v0.11.1
 	git.fractalqb.de/fractalqb/sllm v0.12.0
 	github.com/anthonynsimon/bild v0.13.0

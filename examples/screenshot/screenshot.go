@@ -1,9 +1,13 @@
 package screenshot
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image"
+	"image/jpeg"
+	"io"
 	"log"
 	"math"
 	"os"
@@ -25,6 +29,7 @@ type Screenshot struct {
 	JpegQuality int
 	SubstOrig   bool
 	RmOrig      bool
+	AddTags     bool
 	FID         string
 	Cmdr        string
 }
@@ -160,10 +165,22 @@ func jeScreenshot(scrns *Screenshot, e ggja.Obj) {
 	if err != nil {
 		panic(err)
 	}
+	utc := ts.UTC()
+	Y, M, D := utc.Date()
+	h, m, s := utc.Clock()
+	var tags *ImageTags
+	if scrns.AddTags {
+		tags = &ImageTags{
+			Time:   time.Date(Y+1286, M, D, h, m, s, 0, time.UTC),
+			CMDR:   scrns.Cmdr,
+			System: sys,
+			Body:   body,
+		}
+	}
 	if scrns.SubstOrig {
 		subst := outFileIn(filepath.Dir(input), fpat)
 		log.Printf("subst: %s", subst)
-		err = imgio.Save(subst, img, imgio.JPEGEncoder(scrns.JpegQuality))
+		err = writeJPEGFile(subst, img, scrns.JpegQuality, tags)
 		if err != nil {
 			panic(err)
 		}
@@ -178,7 +195,7 @@ func jeScreenshot(scrns *Screenshot, e ggja.Obj) {
 	}
 	output := outFileIn(outdir, fpat)
 	log.Printf("convert: %s", output)
-	err = imgio.Save(output, img, imgio.JPEGEncoder(scrns.JpegQuality))
+	err = writeJPEGFile(output, img, scrns.JpegQuality, tags)
 	if err != nil {
 		panic(err)
 	}
@@ -236,4 +253,75 @@ func cropHeight(img image.Image, h int) image.Rectangle {
 		},
 	}
 	return res
+}
+
+type ImageTags struct {
+	Time   time.Time `json:",omitempty"`
+	CMDR   string    `json:",omitempty"`
+	System string    `json:",omitempty"`
+	Body   string    `json:",omitempty"`
+	Port   string    `json:",omitempty"`
+	Coos   []float64 `json:",omitempty"`
+}
+
+func writeJPEGFile(name string, img image.Image, q int, tags *ImageTags) error {
+	wr, err := os.Create(name)
+	if err != nil {
+		return err
+	}
+	defer wr.Close()
+	return writeJPEG(wr, img, q, tags)
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func writeJPEG(wr io.Writer, img image.Image, q int, tags *ImageTags) (err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			switch x := p.(type) {
+			case error:
+				err = x
+			case string:
+				err = errors.New(x)
+			default:
+				err = fmt.Errorf("panic: %+v", p)
+			}
+		}
+	}()
+	var buf bytes.Buffer
+	must(jpeg.Encode(&buf, img, &jpeg.Options{Quality: q}))
+	jscn := NewJFIFScanner(&buf)
+	for jscn.Scan() {
+		if jscn.Tag == JFIFMarkerSOS {
+			break
+		}
+		must(jscn.Tag.WriteMarker(wr, uint16(jscn.Size)))
+		_, err = io.Copy(wr, jscn.Segment())
+		must(err)
+	}
+	switch {
+	case jscn.Err != nil:
+		return jscn.Err
+	case jscn.Tag != JFIFMarkerSOS:
+		return errors.New("missing data segment")
+	}
+	if tags != nil {
+		data, err := json.Marshal(tags)
+		must(err)
+		must(JFIFMarkerCOM.WriteMarker(wr, uint16(len(data)+2)))
+		_, err = wr.Write(data)
+		must(err)
+	}
+	if err = JFIFMarkerSOS.WriteMarker(wr, 0); err != nil {
+		return err
+	}
+	if _, err = io.Copy(wr, jscn.Segment()); err != nil {
+		return err
+	}
+	_, err = wr.Write([]byte{0xff, byte(JFIFMarkerEOI)})
+	return err
 }

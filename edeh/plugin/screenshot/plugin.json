@@ -2,7 +2,7 @@
     "off": false,
     "name": "screenshot",
     "run": "screenshot",
-    "args": ["-d", "D:\\Screenshots", "-a", "16:9", "-s", "-rm"],
+    "args": ["-d", "D:\\Screenshots", "-a", "16:9", "-s", "-rm", "-tags"],
     "stderr": true,
     "journal": {
 		"blacklist": ["*"],
