@@ -22,41 +22,43 @@ const (
 var (
 	tasks    = make(gomk.Tasks)
 	buildCmd = []string{"build", "--trimpath"}
+	update   = false
 )
 
 func init() {
 	tasks.Def(TOOLS, func(dir *gomk.WDir) {
-		task.GetStringer(dir.Build())
-		task.GetVersioner(dir.Build())
+		task.GetStringer(dir.Build(), update)
+		task.GetVersioner(dir.Build(), update)
 	})
 
 	tasks.Def(GEN, func(dir *gomk.WDir) {
-		dir.Exec("go", "generate", "./...")
+		gomk.Exec(dir, "go", "generate", "./...")
 	}, TOOLS)
 
 	tasks.Def(TEST, func(dir *gomk.WDir) {
-		dir.Exec("go", "test", "./...")
+		gomk.Exec(dir, "go", "test", "./...")
 	})
 
 	tasks.Def(BUILD, func(dir *gomk.WDir) {
-		dir.Exec("go", buildCmd...)
-		dir.Cd("edeh").Do("build edeh", func(dir *gomk.WDir) {
-			dir.Exec("go", buildCmd...)
-			dir.Cd("plugin").Do("build plugins", func(dir *gomk.WDir) {
-				dir.Cd("echo").Exec("go", "build", "--trimpath")
-				dir.Cd("speak").Exec("go", "build", "--trimpath")
-				dir.Cd("screenshot").Exec("go", "build", "--trimpath")
+		gomk.Exec(dir, "go", buildCmd...)
+		gomk.Step(dir.Cd("edeh"), "build edeh", func(dir *gomk.WDir) {
+			gomk.Exec(dir, "go", buildCmd...)
+			gomk.Step(dir.Cd("plugin"), "build plugins", func(dir *gomk.WDir) {
+				gomk.Exec(dir.Cd("echo"), "go", "build", "--trimpath")
+				gomk.Exec(dir.Cd("speak"), "go", "build", "--trimpath")
+				gomk.Exec(dir.Cd("screenshot"), "go", "build", "--trimpath")
 			})
 		})
 	}, GEN)
 
 	tasks.Def(DEPS, func(dir *gomk.WDir) {
-		task.DepsGraph(dir.Build())
+		task.DepsGraph(dir.Build(), update)
 	}, TEST)
 }
 
 func main() {
 	fCDir := flag.String("C", "", "change working dir")
+	flag.BoolVar(&update, "update", update, "Check tools for updates")
 	flag.Parse()
 	if *fCDir != "" {
 		if err := os.Chdir(*fCDir); err != nil {
