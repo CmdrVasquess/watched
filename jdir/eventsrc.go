@@ -13,9 +13,8 @@ type Events struct {
 	Stop     chan internal.StopEvent
 	recv     watched.EventRecv
 	jdir     *JournalDir
-	ljeSec   int64 // last journal event UNIX seconds
-	ljeSeq   int   // seq withn ljeSec
-	djeSeq   int
+	serGen   watched.JEIDCounter
+	lastSer  watched.JEventID
 	serIndep []string
 }
 
@@ -32,7 +31,7 @@ func NewEvents(dir string, r watched.EventRecv, opt *Options) *Events {
 	if opt != nil {
 		jdir.PollWaitMin = opt.PollWaitMin
 		jdir.PollWaitMax = opt.PollWaitMax
-		res.setLastJSerial(opt.JSerial)
+		res.serGen.SetLast(opt.JSerial)
 	}
 	return res
 }
@@ -48,18 +47,7 @@ func (ede *Events) Start(withJournal string) {
 }
 
 func (ede *Events) LastJSerial() watched.JEventID {
-	return ljeSeqMax*ede.ljeSec + int64(ede.ljeSeq)
-}
-
-func (ede *Events) setLastJSerial(s watched.JEventID) {
-	if s < 0 {
-		ede.ljeSec = time.Now().Unix()
-		ede.ljeSeq = 0
-	} else {
-		ede.ljeSec = s / ljeSeqMax
-		ede.ljeSeq = int(s % ljeSeqMax)
-	}
-	ede.djeSeq = -1
+	return ede.serGen.Last()
 }
 
 func (ede *Events) onJournal(raw []byte) {
@@ -68,7 +56,11 @@ func (ede *Events) onJournal(raw []byte) {
 		log.Errore(err)
 		return
 	}
-	if ede.checkNewJournalEvent(t.Unix()) {
+	ok, err := ede.checkNewJournalEvent(t.Unix())
+	if err != nil {
+		log.Warne(err)
+	}
+	if ok {
 		ede.recv.OnJournalEvent(watched.JounalEvent{
 			Serial: ede.LastJSerial(),
 			Event:  bytes.Repeat(raw, 1),
@@ -106,21 +98,16 @@ func (ede *Events) onStat(event watched.StatusType, file string) {
 
 const ljeSeqMax = 1000
 
-func (ede *Events) checkNewJournalEvent(uxsec int64) bool {
-	if uxsec < ede.ljeSec {
-		return false
-	} else if uxsec > ede.ljeSec {
-		ede.ljeSec = uxsec
-		ede.ljeSeq = 0
-		ede.djeSeq = 0
-		return true
+func (ede *Events) checkNewJournalEvent(uxsec int64) (bool, error) {
+	ser, err := ede.serGen.CountUnix(uxsec)
+	if err != nil {
+		return false, err
 	}
-	ede.djeSeq++
-	if ede.djeSeq <= ede.ljeSeq {
-		return false
+	if ser <= ede.lastSer {
+		return false, nil
 	}
-	ede.ljeSeq = ede.djeSeq
-	return true
+	ede.lastSer = ser
+	return true, nil
 }
 
 func (ede *Events) isSerIndep(evt string) bool {

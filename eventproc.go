@@ -1,6 +1,7 @@
 package watched
 
 import (
+	"errors"
 	"time"
 )
 
@@ -80,4 +81,44 @@ var statNames = []string{
 	"<non-status>",
 	StatCargoName, StatMarketName, StatModulesName, StatNavRouteName,
 	StatOutfitName, StatShipyardName, StatStatusName,
+}
+
+const (
+	jeSequenceBits = 10
+	jeSequenceMask = (1 << jeSequenceBits) - 1
+)
+
+type JEIDCounter struct {
+	lastUnix int64
+	seq      int64
+}
+
+func (idc *JEIDCounter) Count(t time.Time) (JEventID, error) {
+	return idc.CountUnix(t.Unix())
+}
+
+func (idc *JEIDCounter) CountUnix(tu int64) (JEventID, error) {
+	tu <<= jeSequenceBits
+	switch {
+	case tu < idc.lastUnix:
+		return 0, errors.New("JEventID timestamp out of sequence")
+	case tu > idc.lastUnix:
+		idc.lastUnix = tu
+		idc.seq = 0
+		return tu, nil
+	}
+	idc.seq++
+	if idc.seq|jeSequenceMask != jeSequenceMask {
+		return 0, errors.New("JEeventID sequence overflow")
+	}
+	return tu | idc.seq, nil
+}
+
+func (idc *JEIDCounter) SetLast(jeid JEventID) {
+	idc.lastUnix = jeid & ^jeSequenceMask
+	idc.seq = jeid & jeSequenceMask
+}
+
+func (idc *JEIDCounter) Last() JEventID {
+	return idc.lastUnix | idc.seq
 }

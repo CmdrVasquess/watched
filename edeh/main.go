@@ -29,6 +29,8 @@ var (
 	fPinOff, fPinOn string
 	fNet            string
 	fManifests      = "plugin.json"
+	fPinQLen        = 64
+	fTCPQLen        = 64
 
 	config struct {
 		Version string
@@ -105,8 +107,12 @@ func flags() {
 	flag.StringVar(&fManifests, "manifests", fManifests,
 		"List of potenitial manifest file names separated by '"+
 			string(filepath.ListSeparator)+`'. Use this if
-you want manifest files with non-default names. 1st match will be loaded.
-`)
+you want manifest files with non-default names. 1st match will be
+loaded.`)
+	flag.IntVar(&fPinQLen, "pq-len", fPinQLen,
+		"Length of plugin event queues")
+	flag.IntVar(&fTCPQLen, "tcpq-len", fTCPQLen,
+		"Default length of TCP client event queues")
 	flag.Parse()
 	c4hgol.SetLevel(logCfg, fLog, nil)
 	if fJDir == "" {
@@ -159,12 +165,14 @@ func main() {
 		if err != nil {
 			log.Errore(err)
 		}
-		for _, tcp := range distro.TCP {
-			log.Infof("TCP client: %s", tcp.Addr)
+		for i := range distro.TCP {
+			go distro.TCP[i].runLoop(&distro.reconnect)
 		}
 	}
-	loadPlugins(fPluginPath,
-		strings.Split(fManifests, string(filepath.ListSeparator)))
+	loadPlugins(
+		fPluginPath,
+		strings.Split(fManifests, string(filepath.ListSeparator)),
+	)
 	go watchED.Start(latestJournal)
 	sigs := make(chan os.Signal)
 	signal.Notify(sigs, os.Interrupt)

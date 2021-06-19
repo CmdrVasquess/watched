@@ -5,85 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"sync"
-	"time"
+	"sync/atomic"
 
 	"github.com/CmdrVasquess/watched"
 )
 
-type tcpClient struct {
-	Addr    string
-	Journal BlackWhiteList
-	Status  BlackWhiteList
-
-	conn    net.Conn
-	connErr time.Time
-	// TODO configurable reconnect delay
-}
-
-func (c *tcpClient) jounrnal(event string, msg []byte, reconn [][]byte) {
-	if c.Journal.Filter(event) {
-		var err error
-		if c.conn == nil {
-			if time.Now().Sub(c.connErr) < time.Second {
-				log.Warna("drop journal event while waiting for reconnect delay")
-				return
-			}
-			log.Infoa("connect to `TCP consumer`", c.Addr)
-			if c.conn, err = net.Dial("tcp", c.Addr); err != nil {
-				log.Errore(err)
-				c.connErr = time.Now()
-				return
-			}
-			for _, rcm := range reconn {
-				if _, err = c.conn.Write(rcm); err != nil {
-					log.Errore(err)
-				}
-			}
-		}
-		log.Tracea("send `event` to TCP `receiver`", event, c.Addr)
-		_, err = c.conn.Write(msg)
-		if err != nil {
-			log.Errora("disconnect: journal to `TCP consumer` `err`", c.Addr, err)
-			c.conn.Close()
-			c.conn = nil
-			c.connErr = time.Now()
-		}
-	} else {
-		log.Tracea("filtered `event` from TCP `receiver`", event, c.Addr)
-	}
-}
-
-func (c *tcpClient) status(event string, msg []byte) {
-	if c.Status.Filter(event) {
-		var err error
-		if c.conn == nil {
-			if time.Now().Sub(c.connErr) < time.Second {
-				log.Warna("drop status event while waiting for reconnect delay")
-				return
-			}
-			log.Infoa("connect to `TCP consumer`", c.Addr)
-			if c.conn, err = net.Dial("tcp", c.Addr); err != nil {
-				log.Errore(err)
-				c.connErr = time.Now()
-				return
-			}
-		}
-		_, err = c.conn.Write(msg)
-		if err != nil {
-			log.Errora("disconnect: status to `TCP consumer` `err`", c.Addr, err)
-			c.conn.Close()
-			c.conn = nil
-			c.connErr = time.Now()
-		}
-	}
-}
-
 type distributor struct {
 	TCP       []tcpClient
-	reconnect [][]byte
+	reconnect atomic.Value // [][]byte
 
 	pins      []*plugin
 	waitClose sync.WaitGroup
@@ -104,8 +35,8 @@ func (d *distributor) load(file string) error {
 }
 
 func (d *distributor) addPlugin(pin *plugin) {
-	pin.jes = make(chan *jEvent, 16)
-	pin.ses = make(chan *sEvent, 16)
+	pin.jes = make(chan *jEvent, fPinQLen)
+	pin.ses = make(chan *sEvent, fPinQLen)
 	d.pins = append(d.pins, pin)
 }
 
@@ -127,18 +58,33 @@ func (d *distributor) OnJournalEvent(e watched.JounalEvent) error {
 		msg:         buf.Bytes(),
 	}
 	for i := range d.TCP {
-		d.TCP[i].jounrnal(event, je.msg, d.reconnect)
+		tcp := &d.TCP[i]
+		select {
+		case tcp.evtq <- je:
+			log.Tracea("sent jevent `to`", tcp.Addr)
+		default:
+			log.Warna("Event queue of `tcp client` full, drop `journal event`",
+				tcp.Addr,
+				e.Serial)
+		}
 	}
 	switch event {
 	case "Fileheader":
-		d.reconnect = [][]byte{je.msg}
+		d.reconnect.Store([][]byte{je.msg})
 	case "Commander":
-		d.reconnect = append(d.reconnect, je.msg)
+		reconn := d.reconnect.Load().([][]byte)
+		d.reconnect.Store(append(reconn, je.msg))
 	case "Shutdown":
-		d.reconnect = [][]byte{je.msg}
+		d.reconnect.Store([][]byte{je.msg})
 	}
 	for _, pin := range d.pins {
-		pin.jes <- je
+		select {
+		case pin.jes <- je:
+		default:
+			log.Warna("Journal event queue of `plugin` full, frop `journal event`",
+				pin.cmd,
+				e.Serial)
+		}
 	}
 	return nil
 }
@@ -154,10 +100,23 @@ func (d *distributor) OnStatusEvent(e watched.StatusEvent) error {
 		msg:         buf.Bytes(),
 	}
 	for i := range d.TCP {
-		d.TCP[i].status(e.Type.String(), se.msg)
+		tcp := &d.TCP[i]
+		select {
+		case tcp.evtq <- se:
+		default:
+			log.Warna("Event queue of `tcp client` full, drop `status event`",
+				tcp.Addr,
+				e.Type)
+		}
 	}
 	for _, pin := range d.pins {
-		pin.ses <- se
+		select {
+		case pin.ses <- se:
+		default:
+			log.Warna("Status event queue of `plugin` full, frop `status event`",
+				pin.cmd,
+				e.Type)
+		}
 	}
 	return nil
 }
@@ -165,12 +124,7 @@ func (d *distributor) OnStatusEvent(e watched.StatusEvent) error {
 func (d *distributor) Close() error {
 	for i := range d.TCP {
 		c := &d.TCP[i]
-		if c.conn != nil {
-			log.Infoa("closing TCP connection to `client`", c.Addr)
-			if err := c.conn.Close(); err != nil {
-				log.Errore(err)
-			}
-		}
+		close(c.evtq)
 	}
 	for _, pin := range d.pins {
 		close(pin.jes)
