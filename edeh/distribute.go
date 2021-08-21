@@ -59,14 +59,7 @@ func (d *distributor) OnJournalEvent(e watched.JounalEvent) error {
 	}
 	for i := range d.TCP {
 		tcp := &d.TCP[i]
-		select {
-		case tcp.evtq <- je:
-			log.Tracea("sent jevent `to`", tcp.Addr)
-		default:
-			log.Warna("Event queue of `tcp client` full, drop `journal event`",
-				tcp.Addr,
-				e.Serial)
-		}
+		tcp.enqueue(je)
 	}
 	switch event {
 	case "Fileheader":
@@ -81,7 +74,7 @@ func (d *distributor) OnJournalEvent(e watched.JounalEvent) error {
 		select {
 		case pin.jes <- je:
 		default:
-			log.Warna("Journal event queue of `plugin` full, frop `journal event`",
+			log.Warna("Journal event queue of `plugin` full, drop `journal event`",
 				pin.cmd,
 				e.Serial)
 		}
@@ -101,13 +94,7 @@ func (d *distributor) OnStatusEvent(e watched.StatusEvent) error {
 	}
 	for i := range d.TCP {
 		tcp := &d.TCP[i]
-		select {
-		case tcp.evtq <- se:
-		default:
-			log.Warna("Event queue of `tcp client` full, drop `status event`",
-				tcp.Addr,
-				e.Type)
-		}
+		tcp.enqueue(se)
 	}
 	for _, pin := range d.pins {
 		select {

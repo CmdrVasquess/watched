@@ -3,7 +3,6 @@ package jdir
 import (
 	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
 )
 
@@ -14,17 +13,17 @@ var relJournalPath = []string{
 	"Elite Dangerous",
 }
 
-func FindJournalDir() (dir string, err error) {
-	usr, err := user.Current()
+func FindJournalDir() (string, error) {
+	var err error
+	relJournalPath[0], err = os.UserHomeDir()
 	if err != nil {
-		return ".", err
+		return "", err
 	}
-	relJournalPath[0] = usr.HomeDir
-	dir = filepath.Join(relJournalPath...)
-	if stat, err := os.Stat(dir); err != nil {
+	res := filepath.Join(relJournalPath...)
+	if stat, err := os.Stat(res); err != nil {
 		return "", err
 	} else if !stat.IsDir() {
-		return "", fmt.Errorf("'%s' is not a directory", dir)
+		return "", fmt.Errorf("%s is not a directory", res)
 	}
-	return dir, nil
+	return res, nil
 }

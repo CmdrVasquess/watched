@@ -2,8 +2,8 @@ package main
 
 const (
 	Major   = 0
-	Minor   = 4
-	Patch   = 5
+	Minor   = 5
+	Patch   = 1
 	Quality = `a`
-	BuildNo = 62
+	BuildNo = 66
 )

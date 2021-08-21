@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"sync/atomic"
 	"time"
@@ -12,11 +13,28 @@ type tcpClient struct {
 	Status   BlackWhiteList
 	QueueLen int
 
-	reconn  *atomic.Value
-	conn    net.Conn
-	connErr time.Time
 	// TODO configurable reconnect delay
-	evtq chan interface{}
+	reconn     *atomic.Value
+	conn       net.Conn
+	connErr    time.Time
+	evtq       chan interface{}
+	qdropCount uint
+}
+
+func (c *tcpClient) enqueue(event interface{}) {
+	select {
+	case c.evtq <- event:
+		c.qdropCount = 0
+	default:
+		if c.qdropCount == 0 {
+			tmpl := fmt.Sprintf(
+				"Event queue of `tcp client` full, drop %T",
+				event,
+			)
+			log.Warna(tmpl, c.Addr)
+		}
+		c.qdropCount++
+	}
 }
 
 func (c *tcpClient) runLoop(reconn *atomic.Value) {
@@ -30,9 +48,22 @@ func (c *tcpClient) runLoop(reconn *atomic.Value) {
 	for e := range c.evtq {
 		switch evt := e.(type) {
 		case *jEvent:
-			c.journal(evt.evt, evt.msg)
+			if c.Journal.Filter(evt.evt) {
+				c.send(evt.evt, evt.msg, c.reconn.Load().([][]byte))
+			} else {
+				log.Tracea("filtered journal `event` from TCP `receiver`",
+					evt.evt,
+					c.Addr)
+			}
 		case *sEvent:
-			c.status(evt.Type.String(), evt.msg)
+			event := evt.Type.String()
+			if c.Status.Filter(event) {
+				c.send(event, evt.msg, nil)
+			} else {
+				log.Tracea("filtered status `event` from TCP `receiver`",
+					event,
+					c.Addr)
+			}
 		default:
 			log.Errorf("Illegal event type %T for tcp client", e)
 		}
@@ -46,61 +77,32 @@ func (c *tcpClient) runLoop(reconn *atomic.Value) {
 	}
 }
 
-func (c *tcpClient) journal(event string, msg []byte) {
-	if c.Journal.Filter(event) {
-		var err error
-		if c.conn == nil {
-			if time.Now().Sub(c.connErr) < time.Second {
-				log.Warna("drop journal event while waiting for reconnect delay")
-				return
-			}
-			log.Infoa("connect to `TCP consumer`", c.Addr)
-			if c.conn, err = net.Dial("tcp", c.Addr); err != nil {
-				log.Errore(err)
-				c.connErr = time.Now()
-				return
-			}
-			reconn := c.reconn.Load().([][]byte)
-			for _, rcm := range reconn {
-				if _, err = c.conn.Write(rcm); err != nil {
-					log.Errore(err)
-				}
-			}
+func (c *tcpClient) send(event string, msg []byte, reconn [][]byte) {
+	var err error
+	if c.conn == nil {
+		if dt := time.Now().Sub(c.connErr); dt < time.Second {
+			log.Warna("`waiting` for reconnect delay", dt)
+			time.Sleep(dt)
 		}
-		log.Tracea("send `event` to TCP `receiver`", event, c.Addr)
-		_, err = c.conn.Write(msg)
-		if err != nil {
-			log.Errora("disconnect: journal to `TCP consumer` `err`", c.Addr, err)
-			c.conn.Close()
+		log.Infoa("connect to `TCP consumer`", c.Addr)
+		if c.conn, err = net.Dial("tcp", c.Addr); err != nil {
+			log.Errore(err)
 			c.conn = nil
 			c.connErr = time.Now()
+			return
 		}
-	} else {
-		log.Tracea("filtered `event` from TCP `receiver`", event, c.Addr)
+		for _, rcm := range reconn {
+			if _, err = c.conn.Write(rcm); err != nil {
+				log.Errore(err)
+			}
+		}
 	}
-}
-
-func (c *tcpClient) status(event string, msg []byte) {
-	if c.Status.Filter(event) {
-		var err error
-		if c.conn == nil {
-			if time.Now().Sub(c.connErr) < time.Second {
-				log.Warna("drop status event while waiting for reconnect delay")
-				return
-			}
-			log.Infoa("connect to `TCP consumer`", c.Addr)
-			if c.conn, err = net.Dial("tcp", c.Addr); err != nil {
-				log.Errore(err)
-				c.connErr = time.Now()
-				return
-			}
-		}
-		_, err = c.conn.Write(msg)
-		if err != nil {
-			log.Errora("disconnect: status to `TCP consumer` `err`", c.Addr, err)
-			c.conn.Close()
-			c.conn = nil
-			c.connErr = time.Now()
-		}
+	log.Tracea("send `event` to TCP `receiver`", event, c.Addr)
+	_, err = c.conn.Write(msg)
+	if err != nil {
+		log.Errora("disconnect: `TCP consumer` `err`", c.Addr, err)
+		c.conn.Close()
+		c.conn = nil
+		c.connErr = time.Now()
 	}
 }

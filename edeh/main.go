@@ -155,6 +155,7 @@ func main() {
 			"Commander",
 			"Shutdown",
 		},
+		JSerial: config.LastSer,
 	}
 	if !fOld {
 		opts.JSerial = watched.StartNow
@@ -180,6 +181,7 @@ func main() {
 	log.Infos("shutting down…")
 	watchED.Stop <- watched.Stop
 	<-watchED.Stop
+	config.LastSer = watchED.LastJSerial()
 	if err := writeConfig(); err != nil {
 		log.Errore(err)
 	}
