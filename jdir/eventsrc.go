@@ -96,8 +96,6 @@ func (ede *Events) onStat(event watched.StatusType, file string) {
 	})
 }
 
-const ljeSeqMax = 1000
-
 func (ede *Events) checkNewJournalEvent(uxsec int64) (bool, error) {
 	ser, err := ede.serGen.CountUnix(uxsec)
 	if err != nil {

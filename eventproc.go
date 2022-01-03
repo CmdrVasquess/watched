@@ -85,9 +85,12 @@ var statNames = []string{
 
 const (
 	jeSequenceBits = 10
-	jeSequenceMask = (1 << jeSequenceBits) - 1
+	JESequenceMask = (1 << jeSequenceBits) - 1
 )
 
+// JEIDCounter generates unique journal event IDs from the event timestamp and
+// a sequence part that numbers all events from one second. JEIDCounter requires
+// that not more than 2^jeSequenceBits=1024 events per second occur.
 type JEIDCounter struct {
 	lastUnix int64
 	seq      int64
@@ -108,15 +111,15 @@ func (idc *JEIDCounter) CountUnix(tu int64) (JEventID, error) {
 		return tu, nil
 	}
 	idc.seq++
-	if idc.seq|jeSequenceMask != jeSequenceMask {
+	if idc.seq|JESequenceMask != JESequenceMask {
 		return 0, errors.New("JEeventID sequence overflow")
 	}
 	return tu | idc.seq, nil
 }
 
 func (idc *JEIDCounter) SetLast(jeid JEventID) {
-	idc.lastUnix = jeid & ^jeSequenceMask
-	idc.seq = jeid & jeSequenceMask
+	idc.lastUnix = jeid & ^JESequenceMask
+	idc.seq = jeid & JESequenceMask
 }
 
 func (idc *JEIDCounter) Last() JEventID {

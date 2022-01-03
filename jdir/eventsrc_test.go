@@ -22,8 +22,8 @@ func TestIsNewJournalEvent(t *testing.T) {
 	})
 	t.Run("second before", func(t *testing.T) {
 		var esrc Events
-		esrc.lastSer = 4711 * ljeSeqMax
-		for i := 0; i < ljeSeqMax+1; i++ {
+		esrc.lastSer = 4711 * watched.JESequenceMask
+		for i := 0; i < watched.JESequenceMask+1; i++ {
 			if ok, err := esrc.checkNewJournalEvent(4710); err != nil {
 				t.Fatal(err)
 			} else if !ok {

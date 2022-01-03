@@ -3,10 +3,10 @@ git.fractalqb.de/fractalqb/c4hgol v0.11.0 h1:dKAsGaA1vJEftTNuccIHFdfCCUzGbWLwfuo
 git.fractalqb.de/fractalqb/c4hgol v0.11.0/go.mod h1:WaEjUnHxxec4RshLTh6cbtbzTnaYYgsK01gjrkBmuoo=
 git.fractalqb.de/fractalqb/c4qblog v0.9.7 h1:uGpbVf8cQKj/ogLZRGn7mQ52iQ5jsH7eayzK04WO0XI=
 git.fractalqb.de/fractalqb/c4qblog v0.9.7/go.mod h1:bhOr8JN6ooFkACQ6sk2Ttvql1b09KnCtztC8APZZRNM=
-git.fractalqb.de/fractalqb/ggja v0.10.2 h1:Dj7Xy1GGNAz1CRdXjfMNA6K3q39pIr59HiJuukvkvTQ=
-git.fractalqb.de/fractalqb/ggja v0.10.2/go.mod h1:AIZ5hSqD4EkkA7UhzCeGfD7dS6rjs164qh1hx1B7LE8=
-git.fractalqb.de/fractalqb/gomk v0.5.2 h1:2rQ1Ff5RDTHgGjsrs7hFbqO2cNnCe5nkhSHQqh5fanA=
-git.fractalqb.de/fractalqb/gomk v0.5.2/go.mod h1:sLdweFqkYF0u7udC+rgukNpU5aQwtISWrQXJ1w3jlTw=
+git.fractalqb.de/fractalqb/ggja v0.11.0 h1:u80JIKw5/fZo3NEuh4ow37vF7AKyumeKwIT8BBc3U4E=
+git.fractalqb.de/fractalqb/ggja v0.11.0/go.mod h1:AIZ5hSqD4EkkA7UhzCeGfD7dS6rjs164qh1hx1B7LE8=
+git.fractalqb.de/fractalqb/gomk v0.6.0 h1:hWKDfeTciaPrW8tdQuFTtsx8j9P0LCcNXy0VjMbGSN4=
+git.fractalqb.de/fractalqb/gomk v0.6.0/go.mod h1:sLdweFqkYF0u7udC+rgukNpU5aQwtISWrQXJ1w3jlTw=
 git.fractalqb.de/fractalqb/nmconv v1.0.1/go.mod h1:gMsx/GoC/NtYT0LGv0kxCQF79LG7bI0QilIgLi7GD3o=
 git.fractalqb.de/fractalqb/pack v0.7.0 h1:SCGgP8KXxHpee9nr9ZLPyRDHV3NR9OrscPK8/yVJmAs=
 git.fractalqb.de/fractalqb/pack v0.7.0/go.mod h1:numzwQ4qG44S9708TOfRBcZZjge9cTpvfqCej4Eco6w=
@@ -27,8 +27,8 @@ github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3Ee
 github.com/cpuguy83/go-md2man v1.0.10/go.mod h1:SmD6nW6nTyfqj6ABTjUi3V3JVMnlJmwcJI5acqYI6dE=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
-github.com/fsnotify/fsnotify v1.5.0 h1:NO5hkcB+srp1x6QmwvNZLeaOgbM8cmBTN32THzjvu2k=
-github.com/fsnotify/fsnotify v1.5.0/go.mod h1:BX0DCEr5pT4jm2CnQdVP1lFV521fcCNcyEeNp4DQQDk=
+github.com/fsnotify/fsnotify v1.5.1 h1:mZcQUHVQUQWoPXXtuf9yuEXKudkV2sx1E06UadKWpgI=
+github.com/fsnotify/fsnotify v1.5.1/go.mod h1:T3375wBYaZdLLcVNkcVbzGHY7f1l/uK5T5Ai1i3InKU=
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
