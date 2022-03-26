@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"sync/atomic"
 
 	"github.com/CmdrVasquess/watched"
 )
 
 type distributor struct {
-	TCP       []tcpClient
-	reconnect atomic.Value // [][]byte
+	TCP        []tcpClient
+	reconnEvts [][]byte
+	reconnLock sync.RWMutex
 
 	pins      []*plugin
 	waitClose sync.WaitGroup
@@ -63,12 +63,9 @@ func (d *distributor) OnJournalEvent(e watched.JounalEvent) error {
 	}
 	switch event {
 	case "Fileheader":
-		d.reconnect.Store([][]byte{je.msg})
-	case "Commander":
-		reconn := d.reconnect.Load().([][]byte)
-		d.reconnect.Store(append(reconn, je.msg))
-	case "Shutdown":
-		d.reconnect.Store([][]byte{je.msg})
+		d.reconnSet1(je.msg)
+	case "Commander", "Shutdown":
+		d.reconnAdd(je.msg)
 	}
 	for _, pin := range d.pins {
 		select {
@@ -80,6 +77,24 @@ func (d *distributor) OnJournalEvent(e watched.JounalEvent) error {
 		}
 	}
 	return nil
+}
+
+func (d *distributor) reconnSet1(raw []byte) {
+	d.reconnLock.Lock()
+	defer d.reconnLock.Unlock()
+	d.reconnEvts = [][]byte{raw}
+}
+
+func (d *distributor) reconnAdd(raw []byte) {
+	d.reconnLock.Lock()
+	defer d.reconnLock.Unlock()
+	d.reconnEvts = append(d.reconnEvts, raw)
+}
+
+func (d *distributor) reconnList() [][]byte {
+	d.reconnLock.RLock()
+	defer d.reconnLock.RUnlock()
+	return d.reconnEvts
 }
 
 func (d *distributor) OnStatusEvent(e watched.StatusEvent) error {

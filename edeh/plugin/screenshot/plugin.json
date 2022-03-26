@@ -1,5 +1,5 @@
 {
-    "off": false,
+    "off": true,
     "name": "screenshot",
     "run": "screenshot",
     "args": ["-d", "D:\\Screenshots", "-a", "16:9", "-s", "-rm", "-tags"],

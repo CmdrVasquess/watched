@@ -160,14 +160,14 @@ func main() {
 	if !fOld {
 		opts.JSerial = watched.StartNow
 	}
-	watchED := jdir.NewEvents(fJDir, &distro, opts)
+	watchED := jdir.NewEventz(fJDir, &distro, opts)
 	if fNet != "" {
 		err := distro.load(fNet)
 		if err != nil {
 			log.Errore(err)
 		}
 		for i := range distro.TCP {
-			go distro.TCP[i].runLoop(&distro.reconnect)
+			go distro.TCP[i].runLoop(&distro)
 		}
 	}
 	loadPlugins(
@@ -179,12 +179,12 @@ func main() {
 	signal.Notify(sigs, os.Interrupt)
 	<-sigs
 	log.Infos("shutting down…")
-	watchED.Stop <- watched.Stop
-	<-watchED.Stop
+	watchED.Stop()
 	config.LastSer = watchED.LastJSerial()
 	if err := writeConfig(); err != nil {
 		log.Errore(err)
 	}
+	distro.Close()
 	distro.waitClose.Wait()
 	log.Infos("bye!")
 }

@@ -1,60 +1,156 @@
 package jdir
 
 import (
+	"bufio"
 	"bytes"
-	"io/ioutil"
-	"time"
+	"io"
+	"os"
+	"path/filepath"
+
+	"git.fractalqb.de/fractalqb/qbsllm"
+	"github.com/rjeczalik/notify"
 
 	"github.com/CmdrVasquess/watched"
 	"github.com/CmdrVasquess/watched/internal"
 )
 
+func IsStatusFile(name string) watched.StatusType {
+	return statsFiles[name]
+}
+
 type Events struct {
-	Stop     chan internal.StopEvent
 	recv     watched.EventRecv
-	jdir     *JournalDir
+	jdir     string
 	serGen   watched.JEIDCounter
 	lastSer  watched.JEventID
 	serIndep []string
+	stop     chan internal.StopEvent // FIXME Conncurent mod
 }
 
-func NewEvents(dir string, r watched.EventRecv, opt *Options) *Events {
-	jdir := &JournalDir{Dir: dir}
+type Options struct {
+	JSerial           int64
+	SerialIndependent []string
+}
+
+func NewEventz(dir string, r watched.EventRecv, opt *Options) *Events {
 	res := &Events{
-		Stop:     make(chan internal.StopEvent),
-		recv:     r,
-		jdir:     jdir,
-		serIndep: opt.SerialIndependent,
+		recv: r,
+		jdir: dir,
+		stop: make(chan internal.StopEvent),
 	}
-	jdir.PerJLine = res.onJournal
-	jdir.OnStatChg = res.onStat
 	if opt != nil {
-		jdir.PollWaitMin = opt.PollWaitMin
-		jdir.PollWaitMax = opt.PollWaitMax
 		res.serGen.SetLast(opt.JSerial)
+		res.serIndep = opt.SerialIndependent
 	}
 	return res
 }
 
-func (ede *Events) Start(withJournal string) {
-	ede.jdir.Stop = MakeStopChan()
-	go ede.jdir.Watch(withJournal)
-	<-ede.Stop
-	ede.jdir.Stop <- watched.Stop
-	<-ede.jdir.Stop
-	ede.recv.Close()
-	close(ede.Stop)
+func (ede *Events) Start(withJournal string) (err error) {
+	log.Infoa("Start watching files in `dir`", ede.jdir)
+	fsevents := make(chan notify.EventInfo, 1)
+	if err := notify.Watch(ede.jdir, fsevents, notify.Write); err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			log.Errore(err)
+		}
+		if fsevents != nil {
+			notify.Stop(fsevents)
+		}
+		close(ede.stop)
+		ede.stop = nil
+		log.Infoa("Stopped watching files in `dir`", ede.jdir)
+	}()
+	var jfpos int64
+	var jfile *os.File
+	if withJournal != "" {
+		jpath := filepath.Join(ede.jdir, withJournal)
+		stat, err := os.Stat(jpath)
+		if err != nil {
+			return err
+		}
+		jfpos = stat.Size()
+		jfile, err = os.Open(jpath)
+		if err != nil {
+			return err
+		}
+	}
+EVENT_LOOP:
+	for {
+		select {
+		case <-ede.stop:
+			break EVENT_LOOP
+		case e := <-fsevents:
+			log.Tracea("FS `event`", e)
+			file := filepath.Base(e.Path())
+			if IsJournalFile(file) {
+				if file != withJournal {
+					log.Debuga("Switch `from` to `journal`", withJournal, file)
+					var err error
+					if jfile != nil {
+						err = jfile.Close()
+						if err != nil {
+							log.Errore(err)
+						}
+					}
+					jfile, err = os.Open(e.Path())
+					if err != nil {
+						log.Errore(err)
+						withJournal = ""
+						continue
+					}
+					withJournal = file
+					jfpos = 0
+				}
+				stat, err := jfile.Stat()
+				if err != nil {
+					log.Errore(err)
+					continue
+				}
+				jfile.Seek(jfpos, os.SEEK_SET)
+				lrd := io.LimitReader(jfile, stat.Size()-jfpos)
+				scn := bufio.NewScanner(lrd)
+				for scn.Scan() {
+					data := scn.Bytes()
+					data = bytes.TrimSpace(data)
+					if len(data) > 0 {
+						if log.Logs(qbsllm.Ltrace) {
+							log.Tracef("journal data [%s]", string(data))
+						}
+						ede.onJournal(data)
+					}
+				}
+				jfpos = stat.Size()
+			} else if sft := IsStatusFile(file); sft > 0 {
+				ede.onStatus(sft, e.Path())
+			} else {
+				log.Tracea("Ignore FS event `on`", file)
+			}
+		}
+	}
+	notify.Stop(fsevents)
+	fsevents = nil
+	return nil
+}
+
+func (ede *Events) Stop() {
+	if ede.stop != nil {
+		ede.stop <- watched.Stop
+		<-ede.stop
+		ede.stop = nil
+	}
 }
 
 func (ede *Events) LastJSerial() watched.JEventID {
 	return ede.serGen.Last()
 }
 
-func (ede *Events) onJournal(raw []byte) {
+func (ede *Events) onJournal(raw []byte) int {
 	t, err := watched.PeekTime(raw)
 	if err != nil {
 		log.Errore(err)
-		return
+		return len(raw)
 	}
 	ok, err := ede.checkNewJournalEvent(t.Unix())
 	if err != nil {
@@ -73,27 +169,7 @@ func (ede *Events) onJournal(raw []byte) {
 			Event:  bytes.Repeat(raw, 1),
 		})
 	}
-}
-
-var (
-	statReplaceNl  = []byte{'\n'}
-	statReplaceCr  = []byte{'\r'}
-	statReplaceSpc = []byte{' '}
-)
-
-func (ede *Events) onStat(event watched.StatusType, file string) {
-	raw, err := ioutil.ReadFile(file)
-	if err != nil {
-		log.Errore(err) // TODO be more descriptive
-		return
-	}
-	raw = bytes.ReplaceAll(raw, statReplaceNl, statReplaceSpc)
-	raw = bytes.ReplaceAll(raw, statReplaceCr, statReplaceSpc)
-	raw = bytes.TrimSpace(raw)
-	ede.recv.OnStatusEvent(watched.StatusEvent{
-		Type:  event,
-		Event: bytes.Repeat(raw, 1),
-	})
+	return len(raw)
 }
 
 func (ede *Events) checkNewJournalEvent(uxsec int64) (bool, error) {
@@ -117,9 +193,18 @@ func (ede *Events) isSerIndep(evt string) bool {
 	return false
 }
 
-type Options struct {
-	PollWaitMin       time.Duration
-	PollWaitMax       time.Duration
-	JSerial           int64
-	SerialIndependent []string
+func (ede *Events) onStatus(t watched.StatusType, file string) {
+	raw, err := os.ReadFile(file)
+	if err != nil {
+		log.Errore(err) // TODO be more descriptive
+		return
+	}
+	// TODO Why did we do this:
+	// raw = bytes.ReplaceAll(raw, statReplaceNl, statReplaceSpc)
+	// raw = bytes.ReplaceAll(raw, statReplaceCr, statReplaceSpc)
+	// raw = bytes.TrimSpace(raw)
+	ede.recv.OnStatusEvent(watched.StatusEvent{
+		Type:  t,
+		Event: raw,
+	})
 }

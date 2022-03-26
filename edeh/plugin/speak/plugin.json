@@ -1,5 +1,5 @@
 {
-    "off": false,
+    "off": true,
     "name": "speak",
     "run": "speak",
     "args": ["-v", "speak.json"],

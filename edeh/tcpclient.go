@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net"
-	"sync/atomic"
 	"time"
 )
 
@@ -13,8 +12,6 @@ type tcpClient struct {
 	Status   BlackWhiteList
 	QueueLen int
 
-	// TODO configurable reconnect delay
-	reconn     *atomic.Value
 	conn       net.Conn
 	connErr    time.Time
 	evtq       chan interface{}
@@ -37,9 +34,8 @@ func (c *tcpClient) enqueue(event interface{}) {
 	}
 }
 
-func (c *tcpClient) runLoop(reconn *atomic.Value) {
+func (c *tcpClient) runLoop(d *distributor) {
 	log.Infof("Start TCP client loop of %s", c.Addr)
-	c.reconn = reconn
 	if c.QueueLen <= 0 {
 		c.evtq = make(chan interface{}, fTCPQLen)
 	} else {
@@ -49,9 +45,9 @@ func (c *tcpClient) runLoop(reconn *atomic.Value) {
 		switch evt := e.(type) {
 		case *jEvent:
 			if c.Journal.Filter(evt.evt) {
-				c.send(evt.evt, evt.msg, c.reconn.Load().([][]byte))
+				c.send(evt.evt, evt.msg, d.reconnList())
 			} else {
-				log.Tracea("filtered journal `event` from TCP `receiver`",
+				log.Tracea("Filtered journal `event` from TCP `receiver`",
 					evt.evt,
 					c.Addr)
 			}
@@ -60,7 +56,7 @@ func (c *tcpClient) runLoop(reconn *atomic.Value) {
 			if c.Status.Filter(event) {
 				c.send(event, evt.msg, nil)
 			} else {
-				log.Tracea("filtered status `event` from TCP `receiver`",
+				log.Tracea("Filtered status `event` from TCP `receiver`",
 					event,
 					c.Addr)
 			}
@@ -81,10 +77,10 @@ func (c *tcpClient) send(event string, msg []byte, reconn [][]byte) {
 	var err error
 	if c.conn == nil {
 		if dt := time.Now().Sub(c.connErr); dt < time.Second {
-			log.Warna("`waiting` for reconnect delay", dt)
+			log.Warna("`Waiting` for reconnect delay", dt)
 			time.Sleep(dt)
 		}
-		log.Infoa("connect to `TCP consumer`", c.Addr)
+		log.Infoa("Connect to `TCP consumer`", c.Addr)
 		if c.conn, err = net.Dial("tcp", c.Addr); err != nil {
 			log.Errore(err)
 			c.conn = nil
@@ -97,10 +93,10 @@ func (c *tcpClient) send(event string, msg []byte, reconn [][]byte) {
 			}
 		}
 	}
-	log.Tracea("send `event` to TCP `receiver`", event, c.Addr)
+	log.Tracea("Send `event` to TCP `receiver`", event, c.Addr)
 	_, err = c.conn.Write(msg)
 	if err != nil {
-		log.Errora("disconnect: `TCP consumer` `err`", c.Addr, err)
+		log.Errora("Disconnect: `TCP consumer` `err`", c.Addr, err)
 		c.conn.Close()
 		c.conn = nil
 		c.connErr = time.Now()

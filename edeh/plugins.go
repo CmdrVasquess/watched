@@ -59,14 +59,24 @@ func (bw *BlackWhiteList) Filter(s string) bool {
 }
 
 type plugin struct {
-	Name    string
-	Off     bool
-	Run     string
-	Args    []string `json:",omitempty"`
-	Stdout  bool     `json:",omitempty"`
-	Stderr  bool     `json:",omitempty"`
+	// The name of the plugin, just for documentation
+	Name string
+	// The plugin will onyl be started if !Off
+	Off bool
+	// The command to exec when the plugin is stared. Run is checked to be
+	// inside or below its plugin folder. If not, the plugin will be ignored.
+	Run string
+	// The arguments that are passed to the Run command.
+	Args []string `json:",omitempty"`
+	// If Stdout is true, the stdout of the plugin will be connected to
+	// EDEH's stdout. Otherwise it goes to /dev/null.
+	Stdout bool `json:",omitempty"`
+	// If Stderr is true, the stderr of the plugin will be connected to
+	// EDEH's stderr. Otherwise it goes to /dev/null.
+	Stderr  bool `json:",omitempty"`
 	Journal BlackWhiteList
 	Status  BlackWhiteList
+
 	rootDir string
 	cmd     *exec.Cmd
 	pipe    io.WriteCloser
@@ -268,7 +278,7 @@ func loadPlugin(manifest string) error {
 		pin.Journal.Blacklist = []string{}
 	}
 	if err = pin.cmd.Start(); err != nil {
-		log.Errore(err)
+		return err
 	}
 	distro.addPlugin(pin)
 	go pin.start(&distro.waitClose)
