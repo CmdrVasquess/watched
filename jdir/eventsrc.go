@@ -32,7 +32,7 @@ type Options struct {
 	SerialIndependent []string
 }
 
-func NewEventz(dir string, r watched.EventRecv, opt *Options) *Events {
+func NewEvents(dir string, r watched.EventRecv, opt *Options) *Events {
 	res := &Events{
 		recv: r,
 		jdir: dir,
@@ -108,20 +108,22 @@ EVENT_LOOP:
 					log.Errore(err)
 					continue
 				}
-				jfile.Seek(jfpos, os.SEEK_SET)
-				lrd := io.LimitReader(jfile, stat.Size()-jfpos)
-				scn := bufio.NewScanner(lrd)
-				for scn.Scan() {
-					data := scn.Bytes()
-					data = bytes.TrimSpace(data)
-					if len(data) > 0 {
-						if log.Logs(qbsllm.Ltrace) {
-							log.Tracef("journal data [%s]", string(data))
+				if stat.Size() > jfpos {
+					jfile.Seek(jfpos, os.SEEK_SET)
+					lrd := io.LimitReader(jfile, stat.Size()-jfpos)
+					scn := bufio.NewScanner(lrd)
+					for scn.Scan() {
+						data := scn.Bytes()
+						data = bytes.TrimSpace(data)
+						if len(data) > 0 {
+							if log.Logs(qbsllm.Ltrace) {
+								log.Tracef("journal data [%s]", string(data))
+							}
+							ede.onJournal(data)
 						}
-						ede.onJournal(data)
 					}
+					jfpos = stat.Size()
 				}
-				jfpos = stat.Size()
 			} else if sft := IsStatusFile(file); sft > 0 {
 				ede.onStatus(sft, e.Path())
 			} else {
@@ -193,18 +195,25 @@ func (ede *Events) isSerIndep(evt string) bool {
 	return false
 }
 
+var (
+	statReplaceNl  = []byte("\n")
+	statReplaceCr  = []byte("\r")
+	statReplaceSpc = []byte(" ")
+)
+
 func (ede *Events) onStatus(t watched.StatusType, file string) {
 	raw, err := os.ReadFile(file)
 	if err != nil {
 		log.Errore(err) // TODO be more descriptive
 		return
 	}
-	// TODO Why did we do this:
-	// raw = bytes.ReplaceAll(raw, statReplaceNl, statReplaceSpc)
-	// raw = bytes.ReplaceAll(raw, statReplaceCr, statReplaceSpc)
-	// raw = bytes.TrimSpace(raw)
-	ede.recv.OnStatusEvent(watched.StatusEvent{
-		Type:  t,
-		Event: raw,
-	})
+	raw = bytes.ReplaceAll(raw, statReplaceNl, statReplaceSpc)
+	raw = bytes.ReplaceAll(raw, statReplaceCr, statReplaceSpc)
+	raw = bytes.TrimSpace(raw)
+	if len(raw) > 0 {
+		ede.recv.OnStatusEvent(watched.StatusEvent{
+			Type:  t,
+			Event: raw,
+		})
+	}
 }

@@ -14,12 +14,14 @@ type dump struct {
 }
 
 func (d dump) OnJournalEvent(e watched.JounalEvent) error {
+	fmt.Fprintf(d.Writer, "%d: ", e.Serial)
 	d.Write(e.Event)
 	fmt.Fprintln(d)
 	return d.Flush()
 }
 
 func (d dump) OnStatusEvent(e watched.StatusEvent) error {
+	fmt.Fprintf(d.Writer, "%s: ", e.Type.String())
 	d.Write(e.Event)
 	fmt.Fprintln(d)
 	return d.Flush()

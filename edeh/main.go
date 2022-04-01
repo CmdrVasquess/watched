@@ -160,7 +160,7 @@ func main() {
 	if !fOld {
 		opts.JSerial = watched.StartNow
 	}
-	watchED := jdir.NewEventz(fJDir, &distro, opts)
+	watchED := jdir.NewEvents(fJDir, &distro, opts)
 	if fNet != "" {
 		err := distro.load(fNet)
 		if err != nil {
