@@ -71,7 +71,7 @@ func (d *distributor) OnJournalEvent(e watched.JounalEvent) error {
 		select {
 		case pin.jes <- je:
 		default:
-			log.Warna("Journal event queue of `plugin` full, drop `journal event`",
+			log.Warnv("Journal event queue of `plugin` full, drop `journal event`",
 				pin.cmd,
 				e.Serial)
 		}
@@ -115,7 +115,7 @@ func (d *distributor) OnStatusEvent(e watched.StatusEvent) error {
 		select {
 		case pin.ses <- se:
 		default:
-			log.Warna("Status event queue of `plugin` full, frop `status event`",
+			log.Warnv("Status event queue of `plugin` full, frop `status event`",
 				pin.cmd,
 				e.Type)
 		}

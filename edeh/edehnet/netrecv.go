@@ -5,16 +5,15 @@ import (
 	"bytes"
 	"net"
 
-	"git.fractalqb.de/fractalqb/qblog"
 	"git.fractalqb.de/fractalqb/c4hgol"
-	"git.fractalqb.de/fractalqb/qbsllm"
+	"git.fractalqb.de/fractalqb/qblog"
 	"github.com/CmdrVasquess/watched"
 	"github.com/CmdrVasquess/watched/internal/edeh"
 )
 
 var (
-	log                      = qbsllm.New(qbsllm.Lnormal, "edehnet", nil, nil)
-	LogCfg c4hgol.Configurer = qbsllm.NewConfig(log)
+	log                     = qblog.New("edehnet")
+	LogCfg c4hgol.LogConfig = log
 )
 
 type Receiver struct {
@@ -22,7 +21,7 @@ type Receiver struct {
 }
 
 func (r *Receiver) Run(wrecv watched.EventRecv) (err error) {
-	log.Infoa("waiting for event source on `addr`", r.Listen)
+	log.Infov("waiting for event source on `addr`", r.Listen)
 	var lstn net.Listener
 	lstn, err = net.Listen("tcp", r.Listen)
 	if err != nil {
@@ -34,10 +33,10 @@ func (r *Receiver) Run(wrecv watched.EventRecv) (err error) {
 	}
 	lstn.Close()
 	defer conn.Close()
-	log.Infoa("event source connected from `addr`", conn.RemoteAddr())
+	log.Infov("event source connected from `addr`", conn.RemoteAddr())
 	scn := bufio.NewScanner(conn)
 	for scn.Scan() {
-		if log.Logs(qblog.Ltrace) {
+		if log.WouldLog(c4hgol.Trace) {
 			estr := string(scn.Text())
 			if len(estr) > 80 {
 				estr = estr[:80] + "…"
@@ -49,6 +48,6 @@ func (r *Receiver) Run(wrecv watched.EventRecv) (err error) {
 			log.Errore(err)
 		}
 	}
-	log.Infoa("event source with `addr` disconnected", conn.RemoteAddr())
+	log.Infov("event source with `addr` disconnected", conn.RemoteAddr())
 	return nil
 }

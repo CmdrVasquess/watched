@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strconv"
 
-	"git.fractalqb.de/fractalqb/sllm"
+	"git.fractalqb.de/fractalqb/sllm/v2"
 	"github.com/CmdrVasquess/watched"
 )
 

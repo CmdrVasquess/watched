@@ -7,14 +7,14 @@ import (
 	"os"
 
 	"git.fractalqb.de/fractalqb/c4hgol"
-	"git.fractalqb.de/fractalqb/qbsllm"
+	"git.fractalqb.de/fractalqb/qblog"
 	"github.com/CmdrVasquess/watched"
 	"github.com/CmdrVasquess/watched/internal/edeh"
 )
 
 var (
-	log                      = qbsllm.New(qbsllm.Lnormal, "edehpin", nil, nil)
-	LogCfg c4hgol.Configurer = qbsllm.NewConfig(log)
+	log                     = qblog.New("edehpin")
+	LogCfg c4hgol.LogConfig = log
 )
 
 var journalPrefix = []byte("Journal ")

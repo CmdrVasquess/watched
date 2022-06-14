@@ -41,11 +41,11 @@ var (
 
 func readConfig() error {
 	cfgFile := filepath.Join(fData, configName)
-	log.Infoa("read `config`", cfgFile)
+	log.Infov("read `config`", cfgFile)
 	rd, err := os.Open(cfgFile)
 	switch {
 	case os.IsNotExist(err):
-		log.Warna("1st start, `config` not exists", cfgFile)
+		log.Warnv("1st start, `config` not exists", cfgFile)
 		return nil
 	case err != nil:
 		return err
@@ -58,7 +58,7 @@ func readConfig() error {
 func writeConfig() error {
 	cfgFile := filepath.Join(fData, configName)
 	tmpFile := cfgFile + "~"
-	log.Infoa("write `config`", cfgFile)
+	log.Infov("write `config`", cfgFile)
 	wr, err := os.Create(tmpFile)
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func mustFindDataDir() string {
 }
 
 func flags() {
-	flag.StringVar(&fLog, c4hgol.DefaultFlagLevel, "", c4hgol.LevelCfgDoc(nil))
+	flag.StringVar(&fLog, "log", "", c4hgol.FlagDoc())
 	flag.StringVar(&fJDir, "j", "",
 		"Manually set the directory with ED's journal files")
 	flag.BoolVar(&fWatchLatest, "watch-latest", true,
@@ -114,7 +114,7 @@ loaded.`)
 	flag.IntVar(&fTCPQLen, "tcpq-len", fTCPQLen,
 		"Default length of TCP client event queues")
 	flag.Parse()
-	c4hgol.SetLevel(logCfg, fLog, nil)
+	c4hgol.Configure(logCfg, fLog, true)
 	if fJDir == "" {
 		fJDir = mustJournalDir()
 	}

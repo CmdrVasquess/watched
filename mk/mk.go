@@ -2,77 +2,68 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 
 	"git.fractalqb.de/fractalqb/gomk"
-	"git.fractalqb.de/fractalqb/gomk/task"
-)
-
-type target = string
-
-const (
-	TOOLS target = "tools"
-	GEN   target = "gen"
-	TEST  target = "test"
-	BUILD target = "build"
-	DEPS  target = "deps"
+	"git.fractalqb.de/fractalqb/gomk/mktask"
 )
 
 var (
-	tasks    = make(gomk.Tasks)
-	buildCmd = []string{"build", "--trimpath"}
-	update   = false
+	goBuild = gomk.CmdDef{
+		Name: "go",
+		Args: []string{"build", "--trimpath", "-ldflags", "-s -w"}, // What about -a
+	}
+	update = false
+
+	must = gomk.LogMust
 )
 
-func init() {
-	tasks.Def(TOOLS, func(dir *gomk.WDir) {
-		task.GetStringer(dir.Build(), update)
-		task.GetVersioner(dir.Build(), update)
-	})
+// func init() {
 
-	tasks.Def(GEN, func(dir *gomk.WDir) {
-		gomk.Exec(dir, "go", "generate", "./...")
-	}, TOOLS)
+// 	gomk.NewCmdTask(must, prj, "generate", "go", "generate", "./...").
+// 		DependOn(tStringer.Name(), tVersioner.Name())
 
-	tasks.Def(TEST, func(dir *gomk.WDir) {
-		gomk.Exec(dir, "go", "test", "./...")
-	})
+// 	mktask.Def(TEST, func(dir *gomk.WDir) {
+// 		gomk.Exec(dir, "go", "test", "./...")
+// 	})
 
-	tasks.Def(BUILD, func(dir *gomk.WDir) {
-		gomk.Exec(dir, "go", buildCmd...)
-		gomk.Step(dir.Cd("edeh"), "build edeh", func(dir *gomk.WDir) {
-			gomk.Exec(dir, "go", buildCmd...)
-			gomk.Step(dir.Cd("plugin"), "build plugins", func(dir *gomk.WDir) {
-				gomk.Exec(dir.Cd("echo"), "go", "build", "--trimpath")
-				gomk.Exec(dir.Cd("speak"), "go", "build", "--trimpath")
-				gomk.Exec(dir.Cd("screenshot"), "go", "build", "--trimpath")
-			})
-		})
-	}, GEN)
+// 	mktask.Def(BUILD, func(dir *gomk.WDir) {
+// 		gomk.Exec(dir, "go", buildCmd...)
+// 		gomk.Step(dir.Cd("edeh"), "build edeh", func(dir *gomk.WDir) {
+// 			gomk.Exec(dir, "go", buildCmd...)
+// 			gomk.Step(dir.Cd("plugin"), "build plugins", func(dir *gomk.WDir) {
+// 				gomk.Exec(dir.Cd("echo"), "go", "build", "--trimpath")
+// 				gomk.Exec(dir.Cd("speak"), "go", "build", "--trimpath")
+// 				gomk.Exec(dir.Cd("screenshot"), "go", "build", "--trimpath")
+// 			})
+// 		})
+// 	}, GEN)
 
-	tasks.Def(DEPS, func(dir *gomk.WDir) {
-		task.DepsGraph(dir.Build(), update)
-	}, TEST)
-}
+// 	mktask.Def(DEPS, func(dir *gomk.Dir) {
+// 		task.DepsGraph(dir.Build(), update)
+// 	}, TEST)
+// }
 
 func main() {
-	fCDir := flag.String("C", "", "change working dir")
-	flag.BoolVar(&update, "update", update, "Check tools for updates")
+	flag.BoolVar(&update, "u", false, "Get tool update")
 	flag.Parse()
-	if *fCDir != "" {
-		if err := os.Chdir(*fCDir); err != nil {
-			log.Fatal(err)
-		}
-	}
-	build, _ := gomk.NewBuild("", os.Environ())
-	log.Printf("project root: %s\n", build.PrjRoot)
+
+	prj := gomk.NewProject(must, &gomk.Config{Env: os.Environ()})
+
+	tStringer := mktask.NewGetStringer(must, prj, update)
+	tVersioner := mktask.NewGetVersioner(must, prj, update)
+
+	tGoGen := gomk.NewCmdTask(must, prj, "generate", "go", "generate", "./...").
+		DependOn(tStringer.Name(), tVersioner.Name())
+
+	gomk.NewCmdDefTask(must, prj, "edeh", goBuild).WorkDir("edeh").
+		DependOn(tGoGen.Name())
+
 	if len(flag.Args()) == 0 {
-		tasks.Run(BUILD, build.WDir())
-		tasks.Run(TEST, build.WDir())
+		gomk.Build(prj, "edeh")
 	} else {
-		for _, task := range flag.Args() {
-			tasks.Run(task, build.WDir())
+		for _, target := range flag.Args() {
+			gomk.Build(prj, target)
 		}
 	}
 }

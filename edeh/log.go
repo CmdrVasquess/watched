@@ -2,11 +2,11 @@ package main
 
 import (
 	"git.fractalqb.de/fractalqb/c4hgol"
-	"git.fractalqb.de/fractalqb/qbsllm"
+	"git.fractalqb.de/fractalqb/qblog"
 	"github.com/CmdrVasquess/watched"
 )
 
 var (
-	log    = qbsllm.New(qbsllm.Lnormal, "edeh", nil, nil)
-	logCfg = c4hgol.Config(qbsllm.NewConfig(log), watched.LogCfg())
+	log    = qblog.New("edeh")
+	logCfg = c4hgol.NewLogGroup(log, "", watched.LogCfg())
 )

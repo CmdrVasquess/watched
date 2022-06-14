@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"git.fractalqb.de/fractalqb/sllm"
+	"git.fractalqb.de/fractalqb/sllm/v2"
 	"github.com/CmdrVasquess/watched"
 )
 
@@ -98,7 +98,7 @@ type sEvent struct {
 func (pin *plugin) start(closed *sync.WaitGroup) {
 	closed.Add(1)
 	defer closed.Done()
-	log.Infoa("running receive loop of `plugin`", pin.Name)
+	log.Infov("running receive loop of `plugin`", pin.Name)
 	count := 0
 	if pin.jes != nil {
 		count++
@@ -111,7 +111,7 @@ func (pin *plugin) start(closed *sync.WaitGroup) {
 		case e, ok := <-pin.jes:
 			if ok {
 				if err := pin.sendJournal(e); err != nil {
-					log.Warna("sending journal `event` `to`: `err`",
+					log.Warnv("sending journal `event` `to`: `err`",
 						e.evt,
 						pin.Name,
 						err)
@@ -122,7 +122,7 @@ func (pin *plugin) start(closed *sync.WaitGroup) {
 		case e, ok := <-pin.ses:
 			if ok {
 				if err := pin.sendStatus(e); err != nil {
-					log.Warna("sending status `event` `to`: `err`",
+					log.Warnv("sending status `event` `to`: `err`",
 						e.Type,
 						pin.Name,
 						err)
@@ -132,19 +132,19 @@ func (pin *plugin) start(closed *sync.WaitGroup) {
 			}
 		}
 	}
-	log.Debuga("leave receive loop of `plugin`, shutdown…", pin.Name)
+	log.Debugv("leave receive loop of `plugin`, shutdown…", pin.Name)
 	if err := pin.pipe.Close(); err != nil {
-		log.Errora("closing pipe to `plugin`: `err`", pin.Name, err)
+		log.Errorv("closing pipe to `plugin`: `err`", pin.Name, err)
 		pin.cmd.Process.Kill()
-		log.Warna("killed `plugin`", pin.Name)
+		log.Warnv("killed `plugin`", pin.Name)
 	} else {
 		t := time.AfterFunc(shutdownDelay, func() {
-			log.Warna("`shutdown time` of `plugin` exceeded, kill", shutdownDelay, pin.Name)
+			log.Warnv("`shutdown time` of `plugin` exceeded, kill", shutdownDelay, pin.Name)
 			pin.cmd.Process.Kill()
 		})
 		pin.cmd.Wait()
 		t.Stop()
-		log.Infoa("shutdown of `plugin` done", pin.Name)
+		log.Infov("shutdown of `plugin` done", pin.Name)
 	}
 }
 
@@ -195,7 +195,7 @@ func loadPluginsDir(dir string, manifests []string) {
 }
 
 // func loadPluginsDir(dir string) {
-// 	log.Infoa("search plugins in `dir`", dir)
+// 	log.Infov("search plugins in `dir`", dir)
 // 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 // 		if err != nil {
 // 			return err
@@ -244,14 +244,14 @@ func loadPlugin(manifest string) error {
 	}
 	if run, ok := pinSwitches[pin.Name]; ok {
 		if !run {
-			log.Infoa("`plugin` is switched off", pin.Name)
+			log.Infov("`plugin` is switched off", pin.Name)
 			return nil
 		}
 	} else if pin.Off {
-		log.Infoa("`plugin` is switched off", pin.Name)
+		log.Infov("`plugin` is switched off", pin.Name)
 		return nil
 	}
-	log.Infoa("load `plugin` from `dir`", pin.Name, pin.rootDir)
+	log.Infov("load `plugin` from `dir`", pin.Name, pin.rootDir)
 	if err = checkRunPath(pin); err != nil {
 		return err
 	}

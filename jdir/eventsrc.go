@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"git.fractalqb.de/fractalqb/qbsllm"
+	"git.fractalqb.de/fractalqb/c4hgol"
 	"github.com/rjeczalik/notify"
 
 	"github.com/CmdrVasquess/watched"
@@ -46,7 +46,7 @@ func NewEvents(dir string, r watched.EventRecv, opt *Options) *Events {
 }
 
 func (ede *Events) Start(withJournal string) (err error) {
-	log.Infoa("Start watching files in `dir`", ede.jdir)
+	log.Infov("Start watching files in `dir`", ede.jdir)
 	fsevents := make(chan notify.EventInfo, 1)
 	if err := notify.Watch(ede.jdir, fsevents, notify.Write); err != nil {
 		return err
@@ -60,7 +60,7 @@ func (ede *Events) Start(withJournal string) (err error) {
 		}
 		close(ede.stop)
 		ede.stop = nil
-		log.Infoa("Stopped watching files in `dir`", ede.jdir)
+		log.Infov("Stopped watching files in `dir`", ede.jdir)
 	}()
 	var jfpos int64
 	var jfile *os.File
@@ -82,11 +82,11 @@ EVENT_LOOP:
 		case <-ede.stop:
 			break EVENT_LOOP
 		case e := <-fsevents:
-			log.Tracea("FS `event`", e)
+			log.Tracev("FS `event`", e)
 			file := filepath.Base(e.Path())
 			if IsJournalFile(file) {
 				if file != withJournal {
-					log.Debuga("Switch `from` to `journal`", withJournal, file)
+					log.Debugv("Switch `from` to `journal`", withJournal, file)
 					var err error
 					if jfile != nil {
 						err = jfile.Close()
@@ -116,7 +116,7 @@ EVENT_LOOP:
 						data := scn.Bytes()
 						data = bytes.TrimSpace(data)
 						if len(data) > 0 {
-							if log.Logs(qbsllm.Ltrace) {
+							if log.WouldLog(c4hgol.Trace) {
 								log.Tracef("journal data [%s]", string(data))
 							}
 							ede.onJournal(data)
@@ -127,7 +127,7 @@ EVENT_LOOP:
 			} else if sft := IsStatusFile(file); sft > 0 {
 				ede.onStatus(sft, e.Path())
 			} else {
-				log.Tracea("Ignore FS event `on`", file)
+				log.Tracev("Ignore FS event `on`", file)
 			}
 		}
 	}

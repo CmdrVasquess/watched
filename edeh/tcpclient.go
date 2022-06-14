@@ -28,7 +28,7 @@ func (c *tcpClient) enqueue(event interface{}) {
 				"Event queue of `tcp client` full, drop %T",
 				event,
 			)
-			log.Warna(tmpl, c.Addr)
+			log.Warnv(tmpl, c.Addr)
 		}
 		c.qdropCount++
 	}
@@ -47,7 +47,7 @@ func (c *tcpClient) runLoop(d *distributor) {
 			if c.Journal.Filter(evt.evt) {
 				c.send(evt.evt, evt.msg, d.reconnList())
 			} else {
-				log.Tracea("Filtered journal `event` from TCP `receiver`",
+				log.Tracev("Filtered journal `event` from TCP `receiver`",
 					evt.evt,
 					c.Addr)
 			}
@@ -56,7 +56,7 @@ func (c *tcpClient) runLoop(d *distributor) {
 			if c.Status.Filter(event) {
 				c.send(event, evt.msg, nil)
 			} else {
-				log.Tracea("Filtered status `event` from TCP `receiver`",
+				log.Tracev("Filtered status `event` from TCP `receiver`",
 					event,
 					c.Addr)
 			}
@@ -66,7 +66,7 @@ func (c *tcpClient) runLoop(d *distributor) {
 	}
 	log.Infof("Exit TCP client loop of %s", c.Addr)
 	if c.conn != nil {
-		log.Infoa("Closing TCP connection to `client`", c.Addr)
+		log.Infov("Closing TCP connection to `client`", c.Addr)
 		if err := c.conn.Close(); err != nil {
 			log.Errore(err)
 		}
@@ -77,10 +77,10 @@ func (c *tcpClient) send(event string, msg []byte, reconn [][]byte) {
 	var err error
 	if c.conn == nil {
 		if dt := time.Now().Sub(c.connErr); dt < time.Second {
-			log.Warna("`Waiting` for reconnect delay", dt)
+			log.Warnv("`Waiting` for reconnect delay", dt)
 			time.Sleep(dt)
 		}
-		log.Infoa("Connect to `TCP consumer`", c.Addr)
+		log.Infov("Connect to `TCP consumer`", c.Addr)
 		if c.conn, err = net.Dial("tcp", c.Addr); err != nil {
 			log.Errore(err)
 			c.conn = nil
@@ -93,10 +93,10 @@ func (c *tcpClient) send(event string, msg []byte, reconn [][]byte) {
 			}
 		}
 	}
-	log.Tracea("Send `event` to TCP `receiver`", event, c.Addr)
+	log.Tracev("Send `event` to TCP `receiver`", event, c.Addr)
 	_, err = c.conn.Write(msg)
 	if err != nil {
-		log.Errora("Disconnect: `TCP consumer` `err`", c.Addr, err)
+		log.Errorv("Disconnect: `TCP consumer` `err`", c.Addr, err)
 		c.conn.Close()
 		c.conn = nil
 		c.connErr = time.Now()

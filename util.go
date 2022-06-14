@@ -10,7 +10,7 @@ import (
 	"github.com/CmdrVasquess/watched/internal"
 )
 
-func LogCfg() c4hgol.Configurer { return internal.LogCfg }
+func LogCfg() c4hgol.Group { return internal.LogCfg }
 
 const Stop = internal.StopEvent(0)
 
