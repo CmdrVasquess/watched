@@ -7,7 +7,8 @@
     "journal": {
 		"blacklist": ["*"],
 		"whitelist": [
-	    	"ReceiveText"
+	    	"ReceiveText",
+        "FSSSignalDiscovered"
 		]
     },
     "status": {

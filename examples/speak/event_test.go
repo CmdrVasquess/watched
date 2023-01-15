@@ -15,15 +15,7 @@ func must(err error) {
 }
 
 func ExampleEvent_Text() {
-	var evt = Event{
-		If: [][]interface{}{
-			[]interface{}{
-				ggja.BareObj{
-					"Chan": "npc",
-				},
-			},
-		},
-	}
+	var evt = DefaultEvent{}
 	evt.Speak.Format = "From \"%s\": %s"
 	evt.Speak.Args = ggja.BareArr{
 		"From",
@@ -34,8 +26,8 @@ func ExampleEvent_Text() {
 		"From": "John Doe",
 		"Message": "RoC Commander, o7!"
 	}`), &jevt))
-	txt := evt.Text(ggja.Obj{Bare: jevt})
-	fmt.Println(txt)
+	txt, args := evt.Message(nil, ggja.Obj{Bare: jevt})
+	fmt.Println(txt, args)
 	// Output:
-	// From "John Doe": RoC Commander, o7!
+	// From "John Doe": RoC Commander, o7! []
 }

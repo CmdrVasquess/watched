@@ -3,9 +3,12 @@ package jdir
 import (
 	"bufio"
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 
 	"git.fractalqb.de/fractalqb/c4hgol"
 	"github.com/rjeczalik/notify"
@@ -24,7 +27,8 @@ type Events struct {
 	serGen   watched.JEIDCounter
 	lastSer  watched.JEventID
 	serIndep []string
-	stop     chan internal.StopEvent // FIXME Conncurent mod
+	stop     chan internal.StopEvent
+	runs     int32
 }
 
 type Options struct {
@@ -46,6 +50,12 @@ func NewEvents(dir string, r watched.EventRecv, opt *Options) *Events {
 }
 
 func (ede *Events) Start(withJournal string) (err error) {
+	if !atomic.CompareAndSwapInt32(&ede.runs, 0, 1) {
+		if atomic.LoadInt32(&ede.runs) > 0 {
+			return errors.New("jdir events already running")
+		}
+		return errors.New("cannot restart stopped jdir events")
+	}
 	log.Infov("Start watching files in `dir`", ede.jdir)
 	fsevents := make(chan notify.EventInfo, 1)
 	if err := notify.Watch(ede.jdir, fsevents, notify.Write); err != nil {
@@ -59,7 +69,6 @@ func (ede *Events) Start(withJournal string) (err error) {
 			notify.Stop(fsevents)
 		}
 		close(ede.stop)
-		ede.stop = nil
 		log.Infov("Stopped watching files in `dir`", ede.jdir)
 	}()
 	var jfpos int64
@@ -109,7 +118,7 @@ EVENT_LOOP:
 					continue
 				}
 				if stat.Size() > jfpos {
-					jfile.Seek(jfpos, os.SEEK_SET)
+					jfile.Seek(jfpos, io.SeekStart)
 					lrd := io.LimitReader(jfile, stat.Size()-jfpos)
 					scn := bufio.NewScanner(lrd)
 					for scn.Scan() {
@@ -137,11 +146,11 @@ EVENT_LOOP:
 }
 
 func (ede *Events) Stop() {
-	if ede.stop != nil {
-		ede.stop <- watched.Stop
-		<-ede.stop
-		ede.stop = nil
+	if !atomic.CompareAndSwapInt32(&ede.runs, 1, -1) {
+		return
 	}
+	ede.stop <- internal.StopEvent{}
+	<-ede.stop
 }
 
 func (ede *Events) LastJSerial() watched.JEventID {
@@ -204,7 +213,7 @@ var (
 func (ede *Events) onStatus(t watched.StatusType, file string) {
 	raw, err := os.ReadFile(file)
 	if err != nil {
-		log.Errore(err) // TODO be more descriptive
+		log.Errore(fmt.Errorf("%w reading %s", err, file))
 		return
 	}
 	raw = bytes.ReplaceAll(raw, statReplaceNl, statReplaceSpc)

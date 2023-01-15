@@ -23,6 +23,9 @@ func readCfg(name string) {
 	if err = dec.Decode(&speaker); err != nil {
 		log.Fatal(err)
 	}
+	if err = speaker.Configure(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func main() {

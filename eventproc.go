@@ -2,6 +2,7 @@ package watched
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -104,7 +105,7 @@ func (idc *JEIDCounter) CountUnix(tu int64) (JEventID, error) {
 	tu <<= jeSequenceBits
 	switch {
 	case tu < idc.lastUnix:
-		return 0, errors.New("JEventID timestamp out of sequence")
+		return 0, fmt.Errorf("JEventID timestamp %d out of sequence", tu)
 	case tu > idc.lastUnix:
 		idc.lastUnix = tu
 		idc.seq = 0

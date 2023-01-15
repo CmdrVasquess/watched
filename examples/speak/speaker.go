@@ -10,10 +10,35 @@ import (
 )
 
 type Speaker struct {
-	Exe     string
+	TTSExe  string
 	Args    []string `json:",omitempty"`
 	Verbose bool     `json:",omitempty"`
-	Events  map[string]*Event
+	Events  map[string]any
+	stat    status
+}
+
+type status struct {
+	population int
+}
+
+func (spk *Speaker) Configure() error {
+	for e, cfg := range spk.Events {
+		h := handlers[e]
+		if h == nil {
+			dh := new(DefaultEvent)
+			if err := dh.Configure(cfg); err != nil {
+				log.Fatal(err)
+			}
+			handlers[e] = dh
+			h = dh
+		} else {
+			if err := h.Configure(cfg); err != nil {
+				log.Fatal(err)
+			}
+		}
+		log.Printf("cfg '%s'-handler: %+v", e, h)
+	}
+	return nil
 }
 
 func (spk *Speaker) OnJournalEvent(e watched.JounalEvent) (err error) {
@@ -23,17 +48,24 @@ func (spk *Speaker) OnJournalEvent(e watched.JounalEvent) (err error) {
 	}
 	jevt := ggja.Obj{Bare: event}
 	ename := jevt.MStr("event")
-	evt := spk.Events[ename]
-	if evt != nil && evt.Check(jevt) {
-		text := evt.Text(jevt)
-		args := append(evt.Flags, text)
-		cmd := exec.Command(spk.Exe, args...)
-		if spk.Verbose {
-			log.Printf("event %s: '%s'", ename, text)
-		}
-		err = cmd.Run()
+	if ename == "FSDJump" {
+		spk.stat.population = jevt.Int("Population", 0)
+		return nil
 	}
-	return err
+	eh := handlers[ename]
+	if eh == nil {
+		return nil
+	}
+	text, flags := eh.Message(&spk.stat, jevt)
+	if text == "" {
+		return nil
+	}
+	args := append(flags, text)
+	cmd := exec.Command(spk.TTSExe, args...)
+	if spk.Verbose {
+		log.Printf("event %s: '%s' (%v)", ename, text, args)
+	}
+	return cmd.Run()
 }
 
 func (spk *Speaker) OnStatusEvent(e watched.StatusEvent) error { return nil }

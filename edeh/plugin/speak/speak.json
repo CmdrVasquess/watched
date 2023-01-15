@@ -1,11 +1,24 @@
 {
-	"Exe": "C:\\Program Files\\eSpeak NG\\espeak-ng.exe",
+	"TTSExe": "C:\\Program Files\\eSpeak NG\\espeak-ng.exe",
+	"Args": null,
+	"Verbose": false,
 	"Events": {
 		"ReceiveText": {
-			"Speak": {
-				"Format": "From \"%s\": %s",
-				"Args": ["From", ["Message_Localised", "Message"]]
+			"Channels": {
+				"squadron": {
+					"Flags": ["-v", "de"],
+					"Speak": {
+						"Format": "From \"%s\": %s",
+						"Args": ["From", ["Message_Localised", "Message"]]
+					}		
+				}
 			}
+		},
+		"FSSSignalDiscovered": {
+			"Speak": {
+				"Format": "Signal: %s",
+				"Args": [["SignalName_Localised", "SignalName"]]
+			}		
 		}
 	}
 }

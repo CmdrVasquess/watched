@@ -1,3 +1,3 @@
 package internal
 
-type StopEvent int
+type StopEvent struct{}

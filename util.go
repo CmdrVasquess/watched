@@ -12,8 +12,6 @@ import (
 
 func LogCfg() c4hgol.Group { return internal.LogCfg }
 
-const Stop = internal.StopEvent(0)
-
 func PeekTime(str []byte) (t time.Time, err error) {
 	idx := bytes.Index(str, timestampTag)
 	if idx < 0 {
