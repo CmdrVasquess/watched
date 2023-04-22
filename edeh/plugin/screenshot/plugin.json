@@ -1,8 +1,8 @@
 {
-    "off": true,
+    "off": false,
     "name": "screenshot",
     "run": "screenshot",
-    "args": ["-d", "D:\\Screenshots", "-a", "16:9", "-s", "-rm", "-tags"],
+    "args": ["-d", "C:\\Users\\marcus\\Pictures\\Camera Roll\\ED", "-a", "16:9", "-s", "-tags"],
     "stderr": true,
     "journal": {
 		"blacklist": ["*"],

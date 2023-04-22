@@ -11,14 +11,12 @@ import (
 
 var log = internal.JDirLog
 
-var statsFiles = map[string]watched.StatusType{
-	"Cargo.json":       watched.StatCargo,
-	"Market.json":      watched.StatMarket,
-	"ModulesInfo.json": watched.StatModules,
-	"NavRoute.json":    watched.StatNavRoute,
-	"Outfitting.json":  watched.StatOutfit,
-	"Shipyard.json":    watched.StatShipyard,
-	"Status.json":      watched.StatStatus,
+var statsFiles = make(map[string]watched.StatusType)
+
+func init() {
+	for i := watched.StatusType(1); i < watched.EndStatusType; i++ {
+		statsFiles[i.String()+".json"] = i
+	}
 }
 
 func IsJournalFile(name string) bool {

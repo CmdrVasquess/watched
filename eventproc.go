@@ -34,21 +34,29 @@ func ParseStatusType(s string) StatusType {
 }
 
 const (
-	StatCargo StatusType = iota + 1
+	StatBackpack StatusType = iota + 1
+	StatCargo
+	StatFCMats
 	StatMarket
 	StatModules
 	StatNavRoute
 	StatOutfit
+	StatLocker
 	StatShipyard
 	StatStatus
+
+	EndStatusType
 )
 
 const (
+	StatBackpackName = "Backpack"
 	StatCargoName    = "Cargo"
+	StatFCMatsName   = "FCMaterials"
 	StatMarketName   = "Market"
-	StatModulesName  = "ModuleInfo"
+	StatModulesName  = "Modules"
 	StatNavRouteName = "NavRoute"
 	StatOutfitName   = "Outfitting"
+	StatLockerName   = "ShipLocker"
 	StatShipyardName = "Shipyard"
 	StatStatusName   = "Status"
 )
@@ -80,8 +88,16 @@ type EventRecv interface {
 
 var statNames = []string{
 	"<non-status>",
-	StatCargoName, StatMarketName, StatModulesName, StatNavRouteName,
-	StatOutfitName, StatShipyardName, StatStatusName,
+	StatBackpackName,
+	StatCargoName,
+	StatFCMatsName,
+	StatMarketName,
+	StatModulesName,
+	StatNavRouteName,
+	StatOutfitName,
+	StatLockerName,
+	StatShipyardName,
+	StatStatusName,
 }
 
 const (
