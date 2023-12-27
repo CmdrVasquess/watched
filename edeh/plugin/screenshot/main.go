@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"log/slog"
 	"strconv"
 	"strings"
 
@@ -60,5 +61,5 @@ func main() {
 	log.Println("start edeh plugin 'screenshot'")
 	setAspect()
 	defer scrns.Close()
-	plugin.RunRecv(&scrns, nil)
+	plugin.RunRecv(&scrns, nil, slog.Default())
 }

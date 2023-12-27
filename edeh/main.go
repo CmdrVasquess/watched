@@ -9,10 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"git.fractalqb.de/fractalqb/c4hgol"
-
 	"github.com/CmdrVasquess/watched"
-	"github.com/CmdrVasquess/watched/jdir"
 )
 
 //go:generate versioner -pkg main -bno build_no VERSION version.go
@@ -20,12 +17,9 @@ import (
 const configName = "edeh.json"
 
 var (
-	fLog            string
 	fJDir           string
-	fWatchLatest    bool
 	fPluginPath     string
 	fData           string
-	fOld            bool
 	fPinOff, fPinOn string
 	fNet            string
 	fManifests      = "plugin.json"
@@ -33,19 +27,20 @@ var (
 	fTCPQLen        = 64
 
 	config struct {
-		Version string
-		LastSer int64
+		Version     string
+		LastJournal string
+		LastEvent   int
 	}
 	distro distributor
 )
 
 func readConfig() error {
 	cfgFile := filepath.Join(fData, configName)
-	log.Infov("read `config`", cfgFile)
+	log.Info("read `config`", `config`, cfgFile)
 	rd, err := os.Open(cfgFile)
 	switch {
 	case os.IsNotExist(err):
-		log.Warnv("1st start, `config` not exists", cfgFile)
+		log.Warn("1st start, `config` not exists", `config`, cfgFile)
 		return nil
 	case err != nil:
 		return err
@@ -58,7 +53,7 @@ func readConfig() error {
 func writeConfig() error {
 	cfgFile := filepath.Join(fData, configName)
 	tmpFile := cfgFile + "~"
-	log.Infov("write `config`", cfgFile)
+	log.Info("write `config`", `config`, cfgFile)
 	wr, err := os.Create(tmpFile)
 	if err != nil {
 		return err
@@ -74,9 +69,9 @@ func writeConfig() error {
 }
 
 func mustJournalDir() string {
-	res, err := jdir.FindJournalDir()
+	res, err := watched.FindJournalDir()
 	if err != nil {
-		log.Fatale(err)
+		logFatal(err.Error())
 	}
 	return res
 }
@@ -84,21 +79,17 @@ func mustJournalDir() string {
 func mustFindDataDir() string {
 	res, err := findDataDir()
 	if err != nil {
-		log.Fatale(err)
+		logFatal(err.Error())
 	}
 	return res
 }
 
 func flags() {
-	flag.StringVar(&fLog, "log", "", c4hgol.FlagDoc())
 	flag.StringVar(&fJDir, "j", "",
 		"Manually set the directory with ED's journal files")
-	flag.BoolVar(&fWatchLatest, "watch-latest", true,
-		"Start with watching latest journal file")
 	flag.StringVar(&fPluginPath, "p", "./plugin",
 		"Set plugin path")
 	flag.StringVar(&fData, "d", mustFindDataDir(), "Directory where data is stored")
-	flag.BoolVar(&fOld, "old", false, "Accept past events")
 	flag.StringVar(&fPinOff, "off", "",
 		"Comma separated list of plugins to switch off")
 	flag.StringVar(&fPinOn, "on", "",
@@ -113,8 +104,11 @@ loaded.`)
 		"Length of plugin event queues")
 	flag.IntVar(&fTCPQLen, "tcpq-len", fTCPQLen,
 		"Default length of TCP client event queues")
+	logFlag := flag.String("log", "", "Set logging <level>[-|+[fps]]")
 	flag.Parse()
-	c4hgol.Configure(logCfg, fLog, true)
+	if err := logCfg.ParseFlag(*logFlag); err != nil {
+		logFatal(err.Error())
+	}
 	if fJDir == "" {
 		fJDir = mustJournalDir()
 	}
@@ -133,38 +127,26 @@ loaded.`)
 }
 
 func main() {
-	log.Infof("edeh v%d.%d.%d-%s+%d", Major, Minor, Patch, Quality, BuildNo)
+	log.Info(fmt.Sprintf("edeh v%d.%d.%d-%s+%d", Major, Minor, Patch, Quality, BuildNo))
 	flags()
 	if err := readConfig(); err != nil {
-		log.Fatale(err)
+		logFatal(err.Error())
 	}
 	// TODO check config version
 	config.Version = fmt.Sprintf("%d.%d.%d-%s+%d",
 		Major, Minor, Patch, Quality, BuildNo)
-	var latestJournal string
-	if fWatchLatest {
-		var err error
-		latestJournal, err = jdir.NewestJournal(fJDir)
-		if err != nil {
-			log.Fatale(err)
-		}
-	}
-	opts := &jdir.Options{
+	opts := &watched.JournalOptions{
 		SerialIndependent: []string{
 			"Fileheader",
 			"Commander",
 			"Shutdown",
 		},
-		JSerial: config.LastSer,
 	}
-	if !fOld {
-		opts.JSerial = watched.StartNow
-	}
-	watchED := jdir.NewEvents(fJDir, &distro, opts)
+	watchED := watched.NewJournal(fJDir, &distro, opts)
 	if fNet != "" {
 		err := distro.load(fNet)
 		if err != nil {
-			log.Errore(err)
+			log.Error(err.Error())
 		}
 		for i := range distro.TCP {
 			go distro.TCP[i].runLoop(&distro)
@@ -174,17 +156,16 @@ func main() {
 		fPluginPath,
 		strings.Split(fManifests, string(filepath.ListSeparator)),
 	)
-	go watchED.Start(latestJournal)
-	sigs := make(chan os.Signal)
+	go watchED.Start()
+	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt)
 	<-sigs
-	log.Infos("shutting down…")
+	log.Info("shutting down…")
 	watchED.Stop()
-	config.LastSer = watchED.LastJSerial()
 	if err := writeConfig(); err != nil {
-		log.Errore(err)
+		log.Error(err.Error())
 	}
 	distro.Close()
 	distro.waitClose.Wait()
-	log.Infos("bye!")
+	log.Info("bye!")
 }

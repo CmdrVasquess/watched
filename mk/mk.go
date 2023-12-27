@@ -45,6 +45,10 @@ func main() {
 		cmds.DependOn(task.Name())
 	}
 
+	task = gomk.NewCmdDefTask(onErr, prj, "jreplay", goBuild).
+		WorkDir("jreplay")
+	cmds.DependOn(task.Name())
+
 	if len(flag.Args()) == 0 {
 		gomk.Build(prj, "cmds")
 	} else {

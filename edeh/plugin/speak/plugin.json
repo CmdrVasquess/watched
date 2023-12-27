@@ -1,5 +1,5 @@
 {
-    "off": true,
+    "off": false,
     "name": "speak",
     "run": "speak",
     "args": ["-v", "speak.json"],
@@ -8,7 +8,8 @@
 		"blacklist": ["*"],
 		"whitelist": [
 	    	"ReceiveText",
-        "FSSSignalDiscovered"
+        "FSSSignalDiscovered",
+        "FSSDiscoveryScan"
 		]
     },
     "status": {

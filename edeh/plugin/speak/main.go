@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"log"
+	"log/slog"
 	"os"
 
 	"github.com/CmdrVasquess/watched/edeh/plugin"
@@ -37,5 +38,5 @@ func main() {
 	}
 	speaker.Verbose = speaker.Verbose || *fVerb
 	defer speaker.Close()
-	plugin.RunRecv(&speaker, nil)
+	plugin.RunRecv(&speaker, nil, slog.Default())
 }

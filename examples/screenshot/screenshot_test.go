@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func ExampleOutFileIn() {
+func Example_outFileIn() {
 	var scrns Screenshot
 	pat := scrns.OutFilePat(time.Time{}, "SYS", "BODY")
 	file := outFileIn(".", pat)

@@ -212,13 +212,11 @@ func adjustAspect(img image.Image, outAspect float64) image.Image {
 	if math.Abs(imgAspect-outAspect) > 0.001 {
 		if imgAspect > outAspect {
 			outWidth := int(outAspect * float64(img.Bounds().Dy()))
-			var rect image.Rectangle
-			rect = cropWidth(img, outWidth)
+			rect := cropWidth(img, outWidth)
 			img = transform.Crop(img, rect)
 		} else if imgAspect < outAspect {
 			outHeight := int(float64(img.Bounds().Dx()) / outAspect)
-			var rect image.Rectangle
-			rect = cropHeight(img, outHeight)
+			rect := cropHeight(img, outHeight)
 			img = transform.Crop(img, rect)
 		}
 	}

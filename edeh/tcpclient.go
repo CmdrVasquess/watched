@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"time"
@@ -28,14 +29,14 @@ func (c *tcpClient) enqueue(event interface{}) {
 				"Event queue of `tcp client` full, drop %T",
 				event,
 			)
-			log.Warnv(tmpl, c.Addr)
+			log.Warn(tmpl, `tcp client`, c.Addr)
 		}
 		c.qdropCount++
 	}
 }
 
 func (c *tcpClient) runLoop(d *distributor) {
-	log.Infof("Start TCP client loop of %s", c.Addr)
+	log.Info("Start TCP `client` loop", `client`, c.Addr)
 	if c.QueueLen <= 0 {
 		c.evtq = make(chan interface{}, fTCPQLen)
 	} else {
@@ -47,56 +48,66 @@ func (c *tcpClient) runLoop(d *distributor) {
 			if c.Journal.Filter(evt.evt) {
 				c.send(evt.evt, evt.msg, d.reconnList())
 			} else {
-				log.Tracev("Filtered journal `event` from TCP `receiver`",
-					evt.evt,
-					c.Addr)
+				log.Trace("Filtered journal `event` from TCP `receiver`",
+					`event`, evt.evt,
+					`receiver`, c.Addr,
+				)
 			}
 		case *sEvent:
 			event := evt.Type.String()
 			if c.Status.Filter(event) {
 				c.send(event, evt.msg, nil)
 			} else {
-				log.Tracev("Filtered status `event` from TCP `receiver`",
-					event,
-					c.Addr)
+				log.Trace("Filtered status `event` from TCP `receiver`",
+					`event`, event,
+					`receiver`, c.Addr,
+				)
 			}
 		default:
-			log.Errorf("Illegal event type %T for tcp client", e)
+			log.Error("Illegal event `type` for tcp client", `type`, e)
 		}
 	}
-	log.Infof("Exit TCP client loop of %s", c.Addr)
+	log.Info("Exit TCP `client` loop", `client`, c.Addr)
 	if c.conn != nil {
-		log.Infov("Closing TCP connection to `client`", c.Addr)
+		log.Info("Closing TCP connection to `client`", `client`, c.Addr)
 		if err := c.conn.Close(); err != nil {
-			log.Errore(err)
+			log.Error(err.Error())
 		}
 	}
 }
 
 func (c *tcpClient) send(event string, msg []byte, reconn [][]byte) {
-	var err error
+	var (
+		err         error
+		msgInReconn bool
+	)
 	if c.conn == nil {
-		if dt := time.Now().Sub(c.connErr); dt < time.Second {
-			log.Warnv("`Waiting` for reconnect delay", dt)
+		if dt := time.Since(c.connErr); dt < time.Second {
+			log.Warn("`Waiting` for reconnect delay", `Waiting`, dt)
 			time.Sleep(dt)
 		}
-		log.Infov("Connect to `TCP consumer`", c.Addr)
+		log.Info("Connect to `TCP consumer`", `TCP consumer`, c.Addr)
 		if c.conn, err = net.Dial("tcp", c.Addr); err != nil {
-			log.Errore(err)
+			log.Error(err.Error())
 			c.conn = nil
 			c.connErr = time.Now()
 			return
 		}
 		for _, rcm := range reconn {
 			if _, err = c.conn.Write(rcm); err != nil {
-				log.Errore(err)
+				log.Error(err.Error())
 			}
+			msgInReconn = msgInReconn || bytes.Equal(rcm, msg)
 		}
 	}
-	log.Tracev("Send `event` to TCP `receiver`", event, c.Addr)
-	_, err = c.conn.Write(msg)
+	if msgInReconn {
+		log.Trace("`event` to TCP `receiver` already in reconnect", `event`, event, `receiver`, c.Addr)
+	} else {
+		log.Trace("Send `event` to TCP `receiver`", `event`, event, `receiver`, c.Addr)
+		_, err = c.conn.Write(msg)
+	}
 	if err != nil {
-		log.Errorv("Disconnect: `TCP consumer` `err`", c.Addr, err)
+		log.Error("Disconnect: `TCP consumer` `err`", `TCP consumer`, c.Addr, `err`, err)
 		c.conn.Close()
 		c.conn = nil
 		c.connErr = time.Now()

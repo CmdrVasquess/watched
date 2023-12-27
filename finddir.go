@@ -1,5 +1,5 @@
-// +build !windows
+//go:build !windows
 
-package jdir
+package watched
 
 func FindJournalDir() (dir string, err error) { return ".", nil }

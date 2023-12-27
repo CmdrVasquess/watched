@@ -1,4 +1,4 @@
-package jdir
+package watched
 
 import (
 	"fmt"

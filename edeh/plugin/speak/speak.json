@@ -14,6 +14,12 @@
 				}
 			}
 		},
+		"FSSDiscoveryScan": {
+			"Speak": {
+				"Format": "%d bodies, %d other",
+				"Args": ["BodyCount", "NonBodyCount"]
+			}
+		},
 		"FSSSignalDiscovered": {
 			"Speak": {
 				"Format": "Signal: %s",

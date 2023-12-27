@@ -1,8 +1,7 @@
 package watched
 
 import (
-	"errors"
-	"fmt"
+	"bytes"
 	"time"
 )
 
@@ -61,18 +60,30 @@ const (
 	StatStatusName   = "Status"
 )
 
-type JEventID = int64
-
-const StartNow JEventID = -1
-
 type JounalEvent struct {
-	Serial JEventID
-	Event  RawEvent
+	File    string
+	EventNo int
+	Event   RawEvent
+}
+
+func (e *JounalEvent) Clone() JounalEvent {
+	return JounalEvent{
+		File:    e.File,
+		EventNo: e.EventNo,
+		Event:   bytes.Clone(e.Event),
+	}
 }
 
 type StatusEvent struct {
 	Type  StatusType
 	Event RawEvent
+}
+
+func (e *StatusEvent) Clone() StatusEvent {
+	return StatusEvent{
+		Type:  e.Type,
+		Event: bytes.Clone(e.Event),
+	}
 }
 
 type EventSrc struct {
@@ -98,47 +109,4 @@ var statNames = []string{
 	StatLockerName,
 	StatShipyardName,
 	StatStatusName,
-}
-
-const (
-	jeSequenceBits = 10
-	JESequenceMask = (1 << jeSequenceBits) - 1
-)
-
-// JEIDCounter generates unique journal event IDs from the event timestamp and
-// a sequence part that numbers all events from one second. JEIDCounter requires
-// that not more than 2^jeSequenceBits=1024 events per second occur.
-type JEIDCounter struct {
-	lastUnix int64
-	seq      int64
-}
-
-func (idc *JEIDCounter) Count(t time.Time) (JEventID, error) {
-	return idc.CountUnix(t.Unix())
-}
-
-func (idc *JEIDCounter) CountUnix(tu int64) (JEventID, error) {
-	tu <<= jeSequenceBits
-	switch {
-	case tu < idc.lastUnix:
-		return 0, fmt.Errorf("JEventID timestamp %d out of sequence", tu)
-	case tu > idc.lastUnix:
-		idc.lastUnix = tu
-		idc.seq = 0
-		return tu, nil
-	}
-	idc.seq++
-	if idc.seq|JESequenceMask != JESequenceMask {
-		return 0, errors.New("JEeventID sequence overflow")
-	}
-	return tu | idc.seq, nil
-}
-
-func (idc *JEIDCounter) SetLast(jeid JEventID) {
-	idc.lastUnix = jeid & ^JESequenceMask
-	idc.seq = jeid & JESequenceMask
-}
-
-func (idc *JEIDCounter) Last() JEventID {
-	return idc.lastUnix | idc.seq
 }

@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
 
-	"git.fractalqb.de/fractalqb/sllm/v2"
+	"git.fractalqb.de/fractalqb/sllm/v3"
 	"github.com/CmdrVasquess/watched"
 )
 
@@ -98,7 +97,7 @@ type sEvent struct {
 func (pin *plugin) start(closed *sync.WaitGroup) {
 	closed.Add(1)
 	defer closed.Done()
-	log.Infov("running receive loop of `plugin`", pin.Name)
+	log.Info("running receive loop of `plugin`", `plugin`, pin.Name)
 	count := 0
 	if pin.jes != nil {
 		count++
@@ -111,10 +110,11 @@ func (pin *plugin) start(closed *sync.WaitGroup) {
 		case e, ok := <-pin.jes:
 			if ok {
 				if err := pin.sendJournal(e); err != nil {
-					log.Warnv("sending journal `event` `to`: `err`",
-						e.evt,
-						pin.Name,
-						err)
+					log.Warn("sending journal `event` `to`: `err`",
+						`event`, e.evt,
+						`to`, pin.Name,
+						`err`, err,
+					)
 				}
 			} else {
 				count--
@@ -122,29 +122,36 @@ func (pin *plugin) start(closed *sync.WaitGroup) {
 		case e, ok := <-pin.ses:
 			if ok {
 				if err := pin.sendStatus(e); err != nil {
-					log.Warnv("sending status `event` `to`: `err`",
-						e.Type,
-						pin.Name,
-						err)
+					log.Warn("sending status `event` `to`: `err`",
+						`event`, e.Type,
+						`to`, pin.Name,
+						`err`, err,
+					)
 				}
 			} else {
 				count--
 			}
 		}
 	}
-	log.Debugv("leave receive loop of `plugin`, shutdown…", pin.Name)
+	log.Debug("leave receive loop of `plugin`, shutdown…", `plugin`, pin.Name)
 	if err := pin.pipe.Close(); err != nil {
-		log.Errorv("closing pipe to `plugin`: `err`", pin.Name, err)
+		log.Error("closing pipe to `plugin`: `err`",
+			`plugin`, pin.Name,
+			`err`, err,
+		)
 		pin.cmd.Process.Kill()
-		log.Warnv("killed `plugin`", pin.Name)
+		log.Warn("killed `plugin`", `plugin`, pin.Name)
 	} else {
 		t := time.AfterFunc(shutdownDelay, func() {
-			log.Warnv("`shutdown time` of `plugin` exceeded, kill", shutdownDelay, pin.Name)
+			log.Warn("`shutdown time` of `plugin` exceeded, kill",
+				`shutdown time`, shutdownDelay,
+				`plugin`, pin.Name,
+			)
 			pin.cmd.Process.Kill()
 		})
 		pin.cmd.Wait()
 		t.Stop()
-		log.Infov("shutdown of `plugin` done", pin.Name)
+		log.Info("shutdown of `plugin` done", `plugin`, pin.Name)
 	}
 }
 
@@ -176,14 +183,14 @@ func loadPluginsDir(dir string, manifests []string) {
 		mf := filepath.Join(dir, m)
 		if _, err := os.Stat(mf); err == nil {
 			if err = loadPlugin(mf); err != nil {
-				log.Errore(err)
+				log.Error(err.Error())
 			}
 			return
 		}
 	}
-	ls, err := ioutil.ReadDir(dir)
+	ls, err := os.ReadDir(dir)
 	if err != nil {
-		log.Errore(err)
+		log.Error(err.Error())
 		return
 	}
 	for _, l := range ls {
@@ -225,15 +232,14 @@ func readPluginManifest(file string) (*plugin, error) {
 }
 
 func checkRunPath(pin *plugin) error {
-	run := filepath.Clean(filepath.Join(pin.rootDir, pin.Run))
-	if !filepath.HasPrefix(run, pin.rootDir) {
-		return sllm.Error("`run path` of `plugin` not in `plugin dir`",
+	if !filepath.IsLocal(pin.Run) {
+		return sllm.ErrorIdx("`run path` of `plugin` not in `plugin dir`",
 			pin.Run,
 			pin.Name,
 			pin.rootDir,
 		)
 	}
-	pin.Run = run
+	pin.Run = filepath.Clean(filepath.Join(pin.rootDir, pin.Run))
 	return nil
 }
 
@@ -244,14 +250,17 @@ func loadPlugin(manifest string) error {
 	}
 	if run, ok := pinSwitches[pin.Name]; ok {
 		if !run {
-			log.Infov("`plugin` is switched off", pin.Name)
+			log.Info("`plugin` is switched off", `plugin`, pin.Name)
 			return nil
 		}
 	} else if pin.Off {
-		log.Infov("`plugin` is switched off", pin.Name)
+		log.Info("`plugin` is switched off", `plugin`, pin.Name)
 		return nil
 	}
-	log.Infov("load `plugin` from `dir`", pin.Name, pin.rootDir)
+	log.Info("load `plugin` from `dir`",
+		`plugin`, pin.Name,
+		`dir`, pin.rootDir,
+	)
 	if err = checkRunPath(pin); err != nil {
 		return err
 	}

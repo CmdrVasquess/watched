@@ -49,7 +49,7 @@ func (d *distributor) OnJournalEvent(e watched.JounalEvent) error {
 		return errors.New("empty journal event tag")
 	}
 	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "%d ", e.Serial)
+	fmt.Fprintf(&buf, "%s:%d\t", e.File, e.EventNo)
 	buf.Write(e.Event)
 	buf.WriteByte('\n')
 	je := &jEvent{
@@ -71,9 +71,9 @@ func (d *distributor) OnJournalEvent(e watched.JounalEvent) error {
 		select {
 		case pin.jes <- je:
 		default:
-			log.Warnv("Journal event queue of `plugin` full, drop `journal event`",
-				pin.cmd,
-				e.Serial)
+			log.Warn("Journal event queue of `plugin` full, drop `journal event`",
+				`plugin`, pin.cmd,
+				`journal event`, fmt.Sprintf("%s:%d", e.File, e.EventNo))
 		}
 	}
 	return nil
@@ -100,7 +100,7 @@ func (d *distributor) reconnList() [][]byte {
 func (d *distributor) OnStatusEvent(e watched.StatusEvent) error {
 	var buf bytes.Buffer
 	buf.WriteString(e.Type.String())
-	buf.WriteByte(' ')
+	buf.WriteByte('\t')
 	buf.Write(e.Event)
 	buf.WriteByte('\n')
 	se := &sEvent{
@@ -115,9 +115,9 @@ func (d *distributor) OnStatusEvent(e watched.StatusEvent) error {
 		select {
 		case pin.ses <- se:
 		default:
-			log.Warnv("Status event queue of `plugin` full, frop `status event`",
-				pin.cmd,
-				e.Type)
+			log.Warn("Status event queue of `plugin` full, frop `status event`",
+				`plugin`, pin.cmd,
+				`status event`, e.Type)
 		}
 	}
 	return nil

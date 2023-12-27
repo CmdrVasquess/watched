@@ -1,5 +1,5 @@
 {
-    "off": false,
+    "off": true,
     "name": "screenshot",
     "run": "screenshot",
     "args": ["-d", "C:\\Users\\marcus\\Pictures\\Camera Roll\\ED", "-a", "16:9", "-s", "-tags"],
