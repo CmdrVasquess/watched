@@ -37,3 +37,6 @@ With mshta.exe
 ```
 mshta vbscript:Execute("CreateObject(""SAPI.SpVoice"").Speak(""Hello"")(window.close)")
 ```
+
+### wsay
+Windows equivalent of macOS say [on Github](https://github.com/p-groarke/wsay)

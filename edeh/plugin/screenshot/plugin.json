@@ -2,7 +2,7 @@
     "off": true,
     "name": "screenshot",
     "run": "screenshot",
-    "args": ["-d", "C:\\Users\\marcus\\Pictures\\Camera Roll\\ED", "-a", "16:9", "-s", "-tags"],
+    "args": ["-d", "C:\\Users\\JohnDoe\\Pictures\\Camera Roll\\ED", "-a", "16:9", "-s", "-tags"],
     "stderr": true,
     "journal": {
 		"blacklist": ["*"],

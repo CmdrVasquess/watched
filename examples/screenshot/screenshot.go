@@ -15,10 +15,11 @@ import (
 	"strings"
 	"time"
 
+	"git.fractalqb.de/fractalqb/daq"
+	"git.fractalqb.de/fractalqb/eloc/must"
 	"github.com/anthonynsimon/bild/imgio"
 	"github.com/anthonynsimon/bild/transform"
 
-	"git.fractalqb.de/fractalqb/ggja"
 	"github.com/CmdrVasquess/watched"
 )
 
@@ -94,7 +95,7 @@ func (scrns *Screenshot) OnJournalEvent(e watched.JounalEvent) (err error) {
 		return err
 	}
 	if hdl := jehdl[evt]; hdl != nil {
-		bare := make(ggja.BareObj)
+		bare := make(map[string]any)
 		if err = json.Unmarshal(e.Event, &bare); err != nil {
 			return err
 		}
@@ -108,7 +109,7 @@ func (scrns *Screenshot) OnJournalEvent(e watched.JounalEvent) (err error) {
 				}
 			}
 		}()
-		hdl(scrns, ggja.Obj{Bare: bare})
+		hdl(scrns, bare)
 	}
 	return nil
 }
@@ -117,16 +118,16 @@ func (scrns *Screenshot) OnStatusEvent(e watched.StatusEvent) error { return nil
 
 func (scrns *Screenshot) Close() error { return nil }
 
-var jehdl = map[string]func(*Screenshot, ggja.Obj){
+var jehdl = map[string]func(*Screenshot, daq.Map){
 	"Commander":  jeCommander,
 	"LoadGame":   jeLoadGame,
 	"Shutdown":   jeShutdown,
 	"Screenshot": jeScreenshot,
 }
 
-func jeCommander(scrns *Screenshot, e ggja.Obj) {
-	fid := e.MStr("FID")
-	name := e.MStr("Name")
+func jeCommander(scrns *Screenshot, e daq.Map) {
+	fid := must.Ret(daq.AsString(e.Get("FID")))
+	name := must.Ret(daq.AsString(e.Get("Name")))
 	if fid != scrns.FID {
 		log.Printf("switch to commander %s '%s'", fid, name)
 	}
@@ -134,9 +135,9 @@ func jeCommander(scrns *Screenshot, e ggja.Obj) {
 	scrns.Cmdr = name
 }
 
-func jeLoadGame(scrns *Screenshot, e ggja.Obj) {
-	fid := e.MStr("FID")
-	name := e.MStr("Commander")
+func jeLoadGame(scrns *Screenshot, e daq.Map) {
+	fid := must.Ret(daq.AsString(e.Get("FID")))
+	name := must.Ret(daq.AsString(e.Get("Commander")))
 	if fid != scrns.FID {
 		log.Printf("switch to commander %s '%s'", fid, name)
 	}
@@ -144,22 +145,22 @@ func jeLoadGame(scrns *Screenshot, e ggja.Obj) {
 	scrns.Cmdr = name
 }
 
-func jeShutdown(scrns *Screenshot, e ggja.Obj) {
+func jeShutdown(scrns *Screenshot, e daq.Map) {
 	scrns.FID = ""
 	scrns.Cmdr = ""
 	log.Println("switch to no commander")
 }
 
-func jeScreenshot(scrns *Screenshot, e ggja.Obj) {
-	fnm := e.MStr("Filename")
+func jeScreenshot(scrns *Screenshot, e daq.Map) {
+	fnm := must.Ret(daq.AsString(e.Get("Filename")))
 	path := strings.Split(fnm, "\\")
 	if len(path) < 1 {
 		panic(fmt.Errorf("invalid screenshot filename '%s'", fnm))
 	}
 	input := scrns.ScrShot(path[len(path)-1])
-	ts := e.MTime("timestamp")
-	sys := e.Str("System", "")
-	body := e.Str("Body", "")
+	ts := must.Ret(daq.Time(time.RFC3339).As(e.Get("timestamp")))
+	sys := daq.Val(daq.AsString, "")(e.Get("System"))
+	body := daq.Val(daq.AsString, "")(e.Get("Body"))
 	fpat := scrns.OutFilePat(ts, sys, body)
 	img, err := imgio.Open(input)
 	if err != nil {
@@ -271,12 +272,6 @@ func writeJPEGFile(name string, img image.Image, q int, tags *ImageTags) error {
 	return writeJPEG(wr, img, q, tags)
 }
 
-func must(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
 func writeJPEG(wr io.Writer, img image.Image, q int, tags *ImageTags) (err error) {
 	defer func() {
 		if p := recover(); p != nil {
@@ -291,15 +286,15 @@ func writeJPEG(wr io.Writer, img image.Image, q int, tags *ImageTags) (err error
 		}
 	}()
 	var buf bytes.Buffer
-	must(jpeg.Encode(&buf, img, &jpeg.Options{Quality: q}))
+	must.Do(jpeg.Encode(&buf, img, &jpeg.Options{Quality: q}))
 	jscn := NewJFIFScanner(&buf)
 	for jscn.Scan() {
 		if jscn.Tag == JFIFMarkerSOS {
 			break
 		}
-		must(jscn.Tag.WriteMarker(wr, uint16(jscn.Size)))
+		must.Do(jscn.Tag.WriteMarker(wr, uint16(jscn.Size)))
 		_, err = io.Copy(wr, jscn.Segment())
-		must(err)
+		must.Do(err)
 	}
 	switch {
 	case jscn.Err != nil:
@@ -309,10 +304,10 @@ func writeJPEG(wr io.Writer, img image.Image, q int, tags *ImageTags) (err error
 	}
 	if tags != nil {
 		data, err := json.Marshal(tags)
-		must(err)
-		must(JFIFMarkerCOM.WriteMarker(wr, uint16(len(data)+2)))
+		must.Do(err)
+		must.Do(JFIFMarkerCOM.WriteMarker(wr, uint16(len(data)+2)))
 		_, err = wr.Write(data)
-		must(err)
+		must.Do(err)
 	}
 	if err = JFIFMarkerSOS.WriteMarker(wr, 0); err != nil {
 		return err

@@ -1,0 +1,1 @@
+Journal.xyz.log:1	{ "timestamp":"2023-12-28T11:20:05Z", "event":"FSSSignalDiscovered", "SystemAddress":669880296833, "SignalName":"$MULTIPLAYER_SCENARIO42_TITLE;", "SignalName_Localised":"Nav Beacon", "SignalType":"NavBeacon" }

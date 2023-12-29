@@ -3,30 +3,25 @@ package speak
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-
-	"git.fractalqb.de/fractalqb/ggja"
 )
 
 func must(err error) {
 	if err != nil {
-		log.Panic(err)
+		log.Error(err.Error())
+		panic(err)
 	}
 }
 
-func ExampleEvent_Text() {
-	var evt = DefaultEvent{}
-	evt.Speak.Format = "From \"%s\": %s"
-	evt.Speak.Args = ggja.BareArr{
-		"From",
-		ggja.BareArr{"Message_Localised", "Message"},
-	}
-	jevt := make(ggja.BareObj)
+func Example_defaultEvent() {
+	var evt = defaultEvent{}
+	evt.Speak.Template = `From "{{.From}}": {{.Message}}`
+	must(evt.Speak.configure("test"))
+	jevt := make(map[string]any)
 	must(json.Unmarshal([]byte(`{
 		"From": "John Doe",
 		"Message": "RoC Commander, o7!"
 	}`), &jevt))
-	txt, args := evt.Message(nil, ggja.Obj{Bare: jevt})
+	txt, args := evt.message(nil, jevt)
 	fmt.Println(txt, args)
 	// Output:
 	// From "John Doe": RoC Commander, o7! []

@@ -9,11 +9,11 @@ import (
 
 var (
 	logCfg = qblog.DefaultConfig.Clone().SetTimeFmt(qblog.TMillis)
-	log    = qblog.New(logCfg)
+	log    = qblog.New(logCfg).WithGroup("edeh")
 )
 
 func init() {
-	watched.SetLog(log.WithGroup("watched").Logger)
+	watched.SetLog(qblog.New(logCfg).WithGroup("watched").Logger)
 }
 
 func logFatal(msg string, args ...any) {

@@ -2,15 +2,17 @@ package speak
 
 import (
 	"fmt"
-	"log"
+	"strings"
+	"text/template"
 
-	"git.fractalqb.de/fractalqb/ggja"
+	"git.fractalqb.de/fractalqb/daq"
+	"git.fractalqb.de/fractalqb/sllm/v3"
 	"github.com/mitchellh/mapstructure"
 )
 
 type evtHandler interface {
-	Configure(evt any) error
-	Message(stat *status, evt ggja.Obj) (txt string, flags []string)
+	configure(evt string, cfg any) error
+	message(stat *status, evt any) (txt string, flags []string)
 }
 
 var handlers = map[string]evtHandler{
@@ -19,76 +21,98 @@ var handlers = map[string]evtHandler{
 }
 
 type EventMsg struct {
-	Format string
-	Args   []any
+	Text     string
+	Template string
+	tmpl     *template.Template
 }
 
-func (em *EventMsg) Text(jevt ggja.Obj) string {
-	var parts []interface{}
-	for _, arg := range em.Args {
-		switch av := arg.(type) {
-		case string:
-			parts = append(parts, jevt.Str(av, ""))
-		case ggja.BareArr:
-			for _, path := range av {
-				p, err := ggja.Get(jevt, path)
-				if err == nil {
-					parts = append(parts, p)
-					break
-				}
-			}
-		default:
-			log.Printf("cannot resolve text argument: '%+v'", arg)
+func (em *EventMsg) configure(evt string) (err error) {
+	if em.Template != "" {
+		em.tmpl, err = template.New(evt).Parse(em.Template)
+		if err != nil {
+			return err
 		}
+		log.Info("`event` `template`", `event`, evt, `template`, em.Template)
+	} else if em.Text == "" {
+		return sllm.ErrorIdx("empty message for `event`", evt)
+	} else {
+		log.Info("`event` `text`: %s", `event`, evt, `text`, em.Text)
 	}
-	if len(parts) == 0 {
-		return em.Format
-	}
-	return fmt.Sprintf(em.Format, parts...)
+	return nil
 }
 
-// DefaultEvent will be used on every configured Events element that has no
+func (em *EventMsg) output(jevt any) string {
+	if em.tmpl != nil {
+		var sb strings.Builder
+		err := em.tmpl.Execute(&sb, jevt)
+		if err != nil {
+			return err.Error()
+		}
+		return sb.String()
+	}
+	return em.Text
+}
+
+// defaultEvent will be used on every configured Events element that has no
 // pre-registered handler
-type DefaultEvent struct {
+type defaultEvent struct {
 	Flags []string `json:",omitempty"`
 	Speak EventMsg
 }
 
-func (evt *DefaultEvent) Configure(cfg any) error {
-	return mapstructure.Decode(cfg, evt)
+func (evt *defaultEvent) configure(e string, cfg any) error {
+	if err := mapstructure.Decode(cfg, evt); err != nil {
+		return err
+	}
+	return evt.Speak.configure(e)
 }
 
-func (evt *DefaultEvent) Message(stat *status, jevt ggja.Obj) (string, []string) {
-	return evt.Speak.Text(jevt), evt.Flags
+func (evt *defaultEvent) message(stat *status, jevt any) (string, []string) {
+	return evt.Speak.output(jevt), evt.Flags
 }
 
 type receiveText struct {
-	DefaultEvent
-	Channels map[string]DefaultEvent
+	defaultEvent
+	Channels map[string]*defaultEvent
 }
 
-func (evt *receiveText) Configure(cfg any) error {
-	return mapstructure.Decode(cfg, evt)
-}
-
-func (evt *receiveText) Message(stat *status, jevt ggja.Obj) (string, []string) {
-	chn := jevt.Str("Channel", "")
-	if chnCfg, ok := evt.Channels[chn]; ok {
-		return chnCfg.Speak.Text(jevt), chnCfg.Flags
+func (evt *receiveText) configure(e string, cfg any) error {
+	if err := mapstructure.Decode(cfg, evt); err != nil {
+		return fmt.Errorf("%s config: %w", e, err)
 	}
-	return evt.Speak.Text(jevt), evt.Flags
+	if evt.Speak.Text == "" && evt.Speak.Template == "" {
+		if len(evt.Channels) == 0 {
+			return fmt.Errorf("no outpur for %s", e)
+		}
+	} else if err := evt.defaultEvent.Speak.configure(e); err != nil {
+		return fmt.Errorf("%s config: %w", e, err)
+	}
+	for c, ce := range evt.Channels {
+		if err := ce.Speak.configure(e + "-" + c); err != nil {
+			return fmt.Errorf("%s-%s config: %w", e, c, err)
+		}
+	}
+	return nil
+}
+
+func (evt *receiveText) message(stat *status, jevt any) (string, []string) {
+	chn := daq.Val(daq.AsString, "")(daq.Get(jevt, "Channel"))
+	if chnCfg, ok := evt.Channels[chn]; ok {
+		return chnCfg.Speak.output(jevt), chnCfg.Flags
+	}
+	return evt.Speak.output(jevt), evt.Flags
 }
 
 type fssSignalDiscovered struct {
-	DefaultEvent
+	defaultEvent
 }
 
-func (evt *fssSignalDiscovered) Message(stat *status, jevt ggja.Obj) (string, []string) {
+func (evt *fssSignalDiscovered) message(stat *status, jevt any) (string, []string) {
 	if stat.population > 0 {
 		return "", nil
 	}
-	if stn := jevt.Bool("IsStation", false); stn {
+	if stn := daq.Val(daq.AsBool, false)(daq.Get(jevt, "IsStation")); stn {
 		return "", nil
 	}
-	return evt.Speak.Text(jevt), evt.Flags
+	return evt.Speak.output(jevt), evt.Flags
 }

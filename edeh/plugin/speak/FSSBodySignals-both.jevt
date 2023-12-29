@@ -1,0 +1,1 @@
+Journal.xyz.log:1	{ "timestamp":"2023-12-28T20:52:52Z", "event":"FSSBodySignals", "BodyName":"Pra Eaewsy QN-T e3-8 A 3", "BodyID":6, "SystemAddress":35292931812, "Signals":[ { "Type":"$SAA_SignalType_Biological;", "Type_Localised":"Biological", "Count":1 }, { "Type":"$SAA_SignalType_Geological;", "Type_Localised":"Geological", "Count":2 } ] }

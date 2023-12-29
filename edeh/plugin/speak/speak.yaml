@@ -1,0 +1,43 @@
+TTSExe: C:\bin\wsay.exe
+Args: []
+Verbose: false
+Events:
+  ReceiveText:
+    Channels:
+      squadron:
+        Flags: [-v, '5']
+        Speak:
+          Template: >-
+            From "{{.From}}":
+            {{if .Message_Localised}}
+              {{- .Message_Localised -}}
+            {{else}}
+              {{- .Message -}}
+            {{end}}
+  FSSDiscoveryScan:
+    Flags: [-v, '2']
+    Speak:
+      Template: >-
+        {{if and .NonBodyCount (gt .NonBodyCount 0.0) -}}
+          {{.NonBodyCount}} non-bodies
+        {{- else -}}
+          Boring system!
+        {{- end}}
+  FSSSignalDiscovered:
+    Flags: [-v, '2']
+    Speak:
+      Template: >-
+        Signal:
+        {{if .SignalName_Localised}}
+          {{- .SignalName_Localised -}}
+        {{else}}
+          {{- .SignalName -}}
+        {{end}}
+  FSSBodySignals:
+    Flags: [-v, '2']
+    Speak:
+      Template: >-
+        {{range $idx, $e := .Signals -}}
+          {{if gt $idx 0}}; {{end -}}
+          {{$e.Count}} {{$e.Type_Localised -}}
+        {{end}}

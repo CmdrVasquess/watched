@@ -1,0 +1,1 @@
+Journal.xyz.log:1	{ "timestamp":"2023-12-28T17:30:46Z", "event":"FSSBodySignals", "BodyName":"Dehoae XI-M b39-0 A 5", "BodyID":8, "SystemAddress":459425985873, "Signals":[ { "Type":"$SAA_SignalType_Biological;", "Type_Localised":"Biological", "Count":2 } ] }

@@ -1,7 +1,9 @@
 git.fractalqb.de/fractalqb/catch v0.3.0 h1:Gq2b4k3O4+8joTlXLx8thcwYU0FkRGnZgDAoalAs4dM=
 git.fractalqb.de/fractalqb/catch v0.3.0/go.mod h1:zXovejd5jSkpUrfb5N5wuGqfhoP419f7IjdK+JKIbeE=
-git.fractalqb.de/fractalqb/ggja v0.11.2 h1:YmQ1qJ76BWfXRP7vzj+jRQ2nJQR1F80DtdCzIsvVxFQ=
-git.fractalqb.de/fractalqb/ggja v0.11.2/go.mod h1:AIZ5hSqD4EkkA7UhzCeGfD7dS6rjs164qh1hx1B7LE8=
+git.fractalqb.de/fractalqb/daq v0.0.0-20231229121911-b488dda62b2c h1:bUJ0wn+DYDrROK16KGRD+awQx+pKE+cp8ldf3ZO9sTA=
+git.fractalqb.de/fractalqb/daq v0.0.0-20231229121911-b488dda62b2c/go.mod h1:JCEJrpP/hbYN+Vo/RgfgSQrhb8HNJqSPzdU1QVCp+AE=
+git.fractalqb.de/fractalqb/eloc v0.0.0-20231227105451-985ff6d3257d h1:4Q9/UNvRrqbtU77ZpK3CKPUoYd6WRxOfOfeHIOQHPX4=
+git.fractalqb.de/fractalqb/eloc v0.0.0-20231227105451-985ff6d3257d/go.mod h1:bYWIoe0VSIhnJLgrgh1TNOF0n72MpwobmOJS8oZah1I=
 git.fractalqb.de/fractalqb/gomk v0.10.1 h1:Vgh8DBYabmb6lrLEc5o5cByAaXrxgDdQTRNIGmyPzMw=
 git.fractalqb.de/fractalqb/gomk v0.10.1/go.mod h1:4ABwOngHqUTwQpoQpxcaOkc+FhROqrzuRqVyjzF+k0M=
 git.fractalqb.de/fractalqb/icontainer v0.3.0 h1:Ng806FZ9qNLCgk9VJt6egCIMxzbiBTzELHJTwQ+Pg8s=
@@ -36,6 +38,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/rjeczalik/notify v0.9.3 h1:6rJAzHTGKXGj76sbRgDiDcYj/HniypXmSJo1SWakZeY=
 github.com/rjeczalik/notify v0.9.3/go.mod h1:gF3zSOrafR9DQEWSE8TjfI9NkooDxbyT4UgRGKZA0lc=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
+github.com/simonnilsson/ask v0.4.0 h1:m+IaCOwgvXI1w9+g4PiCmxwBD/nEjd1ycc+oneQLMLU=
+github.com/simonnilsson/ask v0.4.0/go.mod h1:sUb3WVJKlF20TzemrTDTB5b1e2mxYYqluNe75OPa7Tg=
 github.com/spf13/afero v1.1.2/go.mod h1:j4pytiNVoe2o6bmDsKpLACNPDBIoEAkihy7loJ1B0CQ=
 github.com/spf13/cast v1.3.0/go.mod h1:Qx5cxh0v+4UWYiBimWS+eyWzqEqokIECu5etghLkUJE=
 github.com/spf13/cobra v0.0.5/go.mod h1:3K3wKZymM7VvHMDS9+Akkh4K60UwM26emMESw8tLCHU=
@@ -54,5 +58,8 @@ golang.org/x/sys v0.0.0-20181205085412-a5c9d58dba9a/go.mod h1:STP8DvDyc/dI5b8T5h
 golang.org/x/sys v0.15.0 h1:h48lPFYpsTvQJZF4EKyI4aLHaev3CxivZmv7yZig9pc=
 golang.org/x/sys v0.15.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
+gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
+gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=

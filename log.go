@@ -8,4 +8,4 @@ import (
 
 var log = qblog.New(&qblog.DefaultConfig)
 
-func SetLog(l *slog.Logger) { log = &qblog.Logger{l} }
+func SetLog(l *slog.Logger) { log = &qblog.Logger{Logger: l} }

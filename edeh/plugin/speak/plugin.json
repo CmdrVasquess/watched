@@ -2,15 +2,16 @@
     "off": false,
     "name": "speak",
     "run": "speak",
-    "args": ["-v", "speak.json"],
+    "args": ["-v", "speak.yaml"],
     "stderr": true,
     "journal": {
-		"blacklist": ["*"],
-		"whitelist": [
-	    	"ReceiveText",
-        "FSSSignalDiscovered",
-        "FSSDiscoveryScan"
-		]
+      "blacklist": ["*"],
+      "whitelist": [
+          "ReceiveText",
+          "FSSSignalDiscovered",
+          "FSSDiscoveryScan",
+          "FSSBodySignals"
+      ]
     },
     "status": {
     	"blacklist": ["*"]

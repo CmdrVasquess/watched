@@ -2,18 +2,18 @@ package speak
 
 import (
 	"encoding/json"
-	"log"
 	"os/exec"
+	"strings"
 
-	"git.fractalqb.de/fractalqb/ggja"
+	"git.fractalqb.de/fractalqb/daq"
 	"github.com/CmdrVasquess/watched"
 )
 
 type Speaker struct {
-	TTSExe  string
-	Args    []string `json:",omitempty"`
-	Verbose bool     `json:",omitempty"`
-	Events  map[string]any
+	TTSExe  string         `yaml:"TTSExe"`
+	Args    []string       `json:",omitempty" yaml:"Args"`
+	Verbose bool           `json:",omitempty" yaml:"Verbose"`
+	Events  map[string]any `yaml:"Events"`
 	stat    status
 }
 
@@ -25,45 +25,52 @@ func (spk *Speaker) Configure() error {
 	for e, cfg := range spk.Events {
 		h := handlers[e]
 		if h == nil {
-			dh := new(DefaultEvent)
-			if err := dh.Configure(cfg); err != nil {
-				log.Fatal(err)
+			dh := new(defaultEvent)
+			if err := dh.configure(e, cfg); err != nil {
+				logFatal(err)
 			}
 			handlers[e] = dh
 			h = dh
 		} else {
-			if err := h.Configure(cfg); err != nil {
-				log.Fatal(err)
+			if err := h.configure(e, cfg); err != nil {
+				logFatal(err)
 			}
 		}
-		log.Printf("cfg '%s'-handler: %+v", e, h)
 	}
 	return nil
 }
 
-func (spk *Speaker) OnJournalEvent(e watched.JounalEvent) (err error) {
-	event := make(ggja.BareObj)
-	if err = json.Unmarshal(e.Event, &event); err != nil {
+func (spk *Speaker) OnJournalEvent(e watched.JounalEvent) error {
+	event := make(map[string]any)
+	if err := json.Unmarshal(e.Event, &event); err != nil {
 		return err
 	}
-	jevt := ggja.Obj{Bare: event}
-	ename := jevt.MStr("event")
+	jevt := daq.Map(event)
+	ename, err := daq.AsString(jevt.Get("event"))
+	if err != nil {
+		return err
+	}
 	if ename == "FSDJump" {
-		spk.stat.population = jevt.Int("Population", 0)
+		spk.stat.population = daq.Val(daq.AsInt, 0)(jevt.Get("Population"))
 		return nil
 	}
 	eh := handlers[ename]
 	if eh == nil {
 		return nil
 	}
-	text, flags := eh.Message(&spk.stat, jevt)
+	text, flags := eh.message(&spk.stat, jevt)
+	text = strings.TrimSpace(text)
 	if text == "" {
 		return nil
 	}
 	args := append(flags, text)
 	cmd := exec.Command(spk.TTSExe, args...)
 	if spk.Verbose {
-		log.Printf("event %s: '%s' (%v)", ename, text, args)
+		log.Info("`event` `text` with `flags`",
+			`event`, ename,
+			`text`, text,
+			`flags`, flags,
+		)
 	}
 	return cmd.Run()
 }

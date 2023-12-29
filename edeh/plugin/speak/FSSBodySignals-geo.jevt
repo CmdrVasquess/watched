@@ -1,0 +1,1 @@
+Journal.xyz.log:1	{ "timestamp":"2023-12-28T22:56:30Z", "event":"FSSBodySignals", "BodyName":"Dehoae NH-R c6-1 1 a", "BodyID":29, "SystemAddress":332289120826, "Signals":[ { "Type":"$SAA_SignalType_Geological;", "Type_Localised":"Geological", "Count":3 } ] }
