@@ -14,7 +14,7 @@ require (
 )
 
 require (
-	git.fractalqb.de/fractalqb/daq v0.0.0-20231229121911-b488dda62b2c
+	git.fractalqb.de/fractalqb/daq v0.1.0
 	git.fractalqb.de/fractalqb/testerr v0.0.0-20231216202338-5365a38895fa
 	golang.org/x/image v0.14.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
