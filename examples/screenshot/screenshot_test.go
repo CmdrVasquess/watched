@@ -6,6 +6,8 @@ import (
 	"image/jpeg"
 	"testing"
 	"time"
+
+	"github.com/CmdrVasquess/watched/edj"
 )
 
 func Example_outFileIn() {
@@ -22,9 +24,13 @@ func TestWriteJPEGFile(t *testing.T) {
 		image.Point{},
 		image.Point{16, 16},
 	})
-	err := writeJPEGFile(t.Name()+".jpg", img, jpeg.DefaultQuality, &ImageTags{
-		Time: time.Date(3300, 1, 1, 12, 0, 0, 0, time.UTC),
-		CMDR: "J. Jameson",
+	err := writeJPEGFile(t.Name()+".jpg", img, jpeg.DefaultQuality, &imageTags{
+		Screenshot: &edj.Screenshot{
+			Event:  edj.Event{Timestamp: time.Date(2023, 1, 1, 12, 0, 0, 0, time.Local)},
+			System: "Sol",
+			Body:   "Sol Earth",
+		},
+		cmdr: "J. Jameson",
 	})
 	if err != nil {
 		t.Fatal(err)

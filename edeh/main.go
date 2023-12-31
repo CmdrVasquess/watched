@@ -87,7 +87,7 @@ func mustFindDataDir() string {
 func flags() {
 	flag.StringVar(&fJDir, "j", "",
 		"Manually set the directory with ED's journal files")
-	flag.StringVar(&fPluginPath, "p", "./plugin",
+	flag.StringVar(&fPluginPath, "p", "./plugins",
 		"Set plugin path")
 	flag.StringVar(&fData, "d", mustFindDataDir(), "Directory where data is stored")
 	flag.StringVar(&fPinOff, "off", "",

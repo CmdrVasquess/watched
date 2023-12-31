@@ -1,0 +1,3 @@
+Journal.xyz.log:1	{ "timestamp":"2023-12-29T17:05:00Z", "event":"Commander", "FID":"F007", "Name":"J. Jameson" }
+Status	{ "timestamp":"2023-12-31T14:42:40Z", "event":"Status", "Flags":2097152, "Latitude": 10, "Longitude": 20, "Altitude": 99 }
+Journal.xyz.log:2	{ "timestamp":"2023-12-29T17:05:19Z", "event":"Screenshot", "Filename":"\\ED_Pictures\\screenshot.bmp", "Width":5760, "Height":1080, "System":"Dehoae NH-R c6-1", "Body":"Dehoae NH-R c6-1" }

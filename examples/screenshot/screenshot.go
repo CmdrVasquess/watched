@@ -1,13 +1,8 @@
 package screenshot
 
 import (
-	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"image"
-	"image/jpeg"
-	"io"
 	"log"
 	"math"
 	"os"
@@ -15,63 +10,70 @@ import (
 	"strings"
 	"time"
 
-	"git.fractalqb.de/fractalqb/daq"
+	"git.fractalqb.de/fractalqb/eloc"
 	"git.fractalqb.de/fractalqb/eloc/must"
-	"github.com/anthonynsimon/bild/imgio"
-	"github.com/anthonynsimon/bild/transform"
 
 	"github.com/CmdrVasquess/watched"
+	"github.com/CmdrVasquess/watched/edj"
+	"github.com/CmdrVasquess/watched/eds"
 )
 
 type Screenshot struct {
 	EDPicDir    string
 	OutRoot     string
+	CmdrDir     bool
 	Aspect      float64
 	JpegQuality int
 	SubstOrig   bool
 	RmOrig      bool
 	AddTags     bool
-	FID         string
-	Cmdr        string
+
+	fid      string
+	cmdr     string
+	Lat, Lon float64
+	Alt      int
 }
 
-func (scrns *Screenshot) ScrShot(name string) (path string) {
-	return filepath.Join(scrns.EDPicDir, name)
-}
-
-func (scrns *Screenshot) OutDir(t time.Time, sys, body string) string {
+func (scrns *Screenshot) OutDir() string {
 	path := scrns.EDPicDir
 	if scrns.OutRoot != "" {
 		path = scrns.OutRoot
 	}
-	if scrns.Cmdr != "" {
-		cmdr := strings.ReplaceAll(scrns.Cmdr, " ", "_")
+	if scrns.CmdrDir && scrns.cmdr != "" {
+		cmdr := strings.ReplaceAll(scrns.cmdr, ".", "")
+		cmdr = fielnameCleaner.Replace(cmdr)
 		path = filepath.Join(path, cmdr)
 	}
 	return path
 }
 
-var fielnameReplc = strings.NewReplacer(
+var fielnameCleaner = strings.NewReplacer(
+	"/", "_",
+	"\\", "_",
 	":", "_",
 	";", "_",
 	" ", "_",
 	"'", "",
+	"\"", "",
+	"\t", "_",
+	"\r", "",
+	"\n", "_",
 )
 
 func (scrns *Screenshot) OutFilePat(t time.Time, sys, body string) string {
 	const sep = "."
 	base := t.Format("060102150405.%d")
 	if sys != "" {
-		base += sep + fielnameReplc.Replace(sys)
+		base += sep + fielnameCleaner.Replace(sys)
 	}
 	if body != "" && body != sys {
 		if strings.HasPrefix(body, sys) {
 			tmp := body[len(sys):]
 			tmp = strings.TrimSpace(tmp)
-			tmp = fielnameReplc.Replace(tmp)
+			tmp = fielnameCleaner.Replace(tmp)
 			base += sep + tmp
 		} else {
-			base += sep + fielnameReplc.Replace(body)
+			base += sep + fielnameCleaner.Replace(body)
 		}
 	}
 	base += ".jpg"
@@ -95,226 +97,133 @@ func (scrns *Screenshot) OnJournalEvent(e watched.JounalEvent) (err error) {
 		return err
 	}
 	if hdl := jehdl[evt]; hdl != nil {
-		bare := make(map[string]any)
-		if err = json.Unmarshal(e.Event, &bare); err != nil {
-			return err
-		}
-		defer func() {
-			if p := recover(); p != nil {
-				switch x := p.(type) {
-				case error:
-					err = x
-				default:
-					err = fmt.Errorf("panic: %+v", p)
-				}
-			}
-		}()
-		hdl(scrns, bare)
+		defer eloc.RecoverAs(&err)
+		hdl(scrns, e.Event)
 	}
 	return nil
 }
 
-func (scrns *Screenshot) OnStatusEvent(e watched.StatusEvent) error { return nil }
+func (scrns *Screenshot) OnStatusEvent(e watched.StatusEvent) error {
+	evt, err := e.Event.PeekEvent()
+	if err != nil {
+		return err
+	}
+	switch evt {
+	case eds.StatusTag:
+		return scrns.sStatus(e.Event)
+	}
+	return nil
+}
 
 func (scrns *Screenshot) Close() error { return nil }
 
-var jehdl = map[string]func(*Screenshot, daq.Map){
-	"Commander":  jeCommander,
-	"LoadGame":   jeLoadGame,
-	"Shutdown":   jeShutdown,
-	"Screenshot": jeScreenshot,
+var jehdl = map[string]func(*Screenshot, []byte){
+	"Commander":  (*Screenshot).jeCommander,
+	"LoadGame":   (*Screenshot).jeLoadGame,
+	"Shutdown":   (*Screenshot).jeShutdown,
+	"Screenshot": (*Screenshot).jeScreenshot,
 }
 
-func jeCommander(scrns *Screenshot, e daq.Map) {
-	fid := must.Ret(daq.AsString(e.Get("FID")))
-	name := must.Ret(daq.AsString(e.Get("Name")))
-	if fid != scrns.FID {
-		log.Printf("switch to commander %s '%s'", fid, name)
+func (scrns *Screenshot) jeCommander(e []byte) {
+	var evt edj.Commander
+	must.Do(json.Unmarshal(e, &evt))
+	if evt.FID != scrns.fid {
+		log.Printf("switch to commander %s", evt.Name)
 	}
-	scrns.FID = fid
-	scrns.Cmdr = name
+	scrns.fid = evt.FID
+	scrns.cmdr = evt.Name
 }
 
-func jeLoadGame(scrns *Screenshot, e daq.Map) {
-	fid := must.Ret(daq.AsString(e.Get("FID")))
-	name := must.Ret(daq.AsString(e.Get("Commander")))
-	if fid != scrns.FID {
-		log.Printf("switch to commander %s '%s'", fid, name)
+func (scrns *Screenshot) jeLoadGame(e []byte) {
+	var evt edj.LoadGame
+	must.Do(json.Unmarshal(e, &evt))
+	if evt.FID != scrns.fid {
+		log.Printf("switch to commander %s", evt.Commander)
 	}
-	scrns.FID = fid
-	scrns.Cmdr = name
+	scrns.fid = evt.FID
+	scrns.cmdr = evt.Commander
 }
 
-func jeShutdown(scrns *Screenshot, e daq.Map) {
-	scrns.FID = ""
-	scrns.Cmdr = ""
+func (scrns *Screenshot) jeShutdown(e []byte) {
+	scrns.fid = ""
+	scrns.cmdr = ""
 	log.Println("switch to no commander")
 }
 
-func jeScreenshot(scrns *Screenshot, e daq.Map) {
-	fnm := must.Ret(daq.AsString(e.Get("Filename")))
-	path := strings.Split(fnm, "\\")
-	if len(path) < 1 {
-		panic(fmt.Errorf("invalid screenshot filename '%s'", fnm))
+func (scrns *Screenshot) jeScreenshot(e []byte) {
+	var evt edj.Screenshot
+	must.Do(json.Unmarshal(e, &evt))
+	fnm := evt.FilenameToOS()
+	fnm = filepath.Base(fnm)
+	if ext := strings.ToLower(filepath.Ext(fnm)); ext != ".bmp" {
+		panic(eloc.Errorf("illegal screenshot file extension: '%s'", ext))
 	}
-	input := scrns.ScrShot(path[len(path)-1])
-	ts := must.Ret(daq.Time(time.RFC3339).As(e.Get("timestamp")))
-	sys := daq.Val(daq.AsString, "")(e.Get("System"))
-	body := daq.Val(daq.AsString, "")(e.Get("Body"))
-	fpat := scrns.OutFilePat(ts, sys, body)
-	img, err := imgio.Open(input)
-	if err != nil {
-		panic(err)
-	}
-	utc := ts.UTC()
-	Y, M, D := utc.Date()
-	h, m, s := utc.Clock()
-	var tags *ImageTags
-	if scrns.AddTags {
-		tags = &ImageTags{
-			Time:   time.Date(Y+1286, M, D, h, m, s, 0, time.UTC),
-			CMDR:   scrns.Cmdr,
-			System: sys,
-			Body:   body,
-		}
-	}
+	input := filepath.Join(scrns.EDPicDir, fnm)
+	img := must.Ret(readBMP(input))
+	fnpat := scrns.OutFilePat(evt.Timestamp, evt.System, evt.Body)
+
 	if scrns.SubstOrig {
-		subst := outFileIn(filepath.Dir(input), fpat)
+		subst := outFileIn(filepath.Dir(input), fnpat)
 		log.Printf("subst: %s", subst)
-		err = writeJPEGFile(subst, img, scrns.JpegQuality, tags)
-		if err != nil {
-			panic(err)
+		if scrns.AddTags {
+			must.Do(writeJPEGFile(subst, img, scrns.JpegQuality, &imageTags{
+				cmdr:       scrns.cmdr,
+				Screenshot: &evt,
+				lat:        scrns.Lat,
+				lon:        scrns.Lon,
+				alt:        scrns.Alt,
+			}))
+		} else {
+			must.Do(writeJPEGFile(subst, img, scrns.JpegQuality, nil))
 		}
 	}
+
 	if scrns.Aspect > 0 {
 		img = adjustAspect(img, scrns.Aspect)
 	}
-	outdir := scrns.OutDir(ts, sys, body)
+
+	outdir := scrns.OutDir()
 	if _, err := os.Stat(outdir); os.IsNotExist(err) {
 		log.Printf("MkDirAll %s", outdir)
-		os.MkdirAll(outdir, 0777)
+		must.Do(os.MkdirAll(outdir, 0777))
 	}
-	output := outFileIn(outdir, fpat)
-	log.Printf("convert: %s", output)
-	err = writeJPEGFile(output, img, scrns.JpegQuality, tags)
-	if err != nil {
-		panic(err)
+	output := outFileIn(outdir, fnpat)
+	log.Printf("convert to: %s", output)
+	if scrns.AddTags {
+		must.Do(writeJPEGFile(output, img, scrns.JpegQuality, &imageTags{
+			cmdr:       scrns.cmdr,
+			Screenshot: &evt,
+			lat:        scrns.Lat,
+			lon:        scrns.Lon,
+			alt:        scrns.Alt,
+		}))
+	} else {
+		must.Do(writeJPEGFile(output, img, scrns.JpegQuality, nil))
 	}
+
 	if scrns.RmOrig {
-		err = os.Remove(input)
+		err := os.Remove(input)
 		if err != nil {
 			log.Println(err)
 		}
 	}
 }
 
-func adjustAspect(img image.Image, outAspect float64) image.Image {
-	imgAspect := float64(img.Bounds().Dx()) / float64(img.Bounds().Dy())
-	if math.Abs(imgAspect-outAspect) > 0.001 {
-		if imgAspect > outAspect {
-			outWidth := int(outAspect * float64(img.Bounds().Dy()))
-			rect := cropWidth(img, outWidth)
-			img = transform.Crop(img, rect)
-		} else if imgAspect < outAspect {
-			outHeight := int(float64(img.Bounds().Dx()) / outAspect)
-			rect := cropHeight(img, outHeight)
-			img = transform.Crop(img, rect)
-		}
-	}
-	return img
-}
-
-func cropWidth(img image.Image, w int) image.Rectangle {
-	dw2 := (img.Bounds().Dx() - w) / 2
-	res := image.Rectangle{
-		Min: image.Point{
-			X: img.Bounds().Min.X + dw2,
-			Y: img.Bounds().Min.Y,
-		},
-		Max: image.Point{
-			X: img.Bounds().Max.X - dw2,
-			Y: img.Bounds().Max.Y,
-		},
-	}
-	return res
-}
-
-func cropHeight(img image.Image, h int) image.Rectangle {
-	dh2 := (img.Bounds().Dy() - h) / 2
-	res := image.Rectangle{
-		Min: image.Point{
-			X: img.Bounds().Min.X,
-			Y: img.Bounds().Min.Y + dh2,
-		},
-		Max: image.Point{
-			X: img.Bounds().Max.X,
-			Y: img.Bounds().Max.Y - dh2,
-		},
-	}
-	return res
-}
-
-type ImageTags struct {
-	Time   time.Time `json:",omitempty"`
-	CMDR   string    `json:",omitempty"`
-	System string    `json:",omitempty"`
-	Body   string    `json:",omitempty"`
-	Port   string    `json:",omitempty"`
-	Coos   []float64 `json:",omitempty"`
-}
-
-func writeJPEGFile(name string, img image.Image, q int, tags *ImageTags) error {
-	wr, err := os.Create(name)
-	if err != nil {
+func (scrns *Screenshot) sStatus(e []byte) error {
+	os.Stdout.Write(e)
+	fmt.Println()
+	var evt eds.Status
+	if err := json.Unmarshal(e, &evt); err != nil {
 		return err
 	}
-	defer wr.Close()
-	return writeJPEG(wr, img, q, tags)
-}
-
-func writeJPEG(wr io.Writer, img image.Image, q int, tags *ImageTags) (err error) {
-	defer func() {
-		if p := recover(); p != nil {
-			switch x := p.(type) {
-			case error:
-				err = x
-			case string:
-				err = errors.New(x)
-			default:
-				err = fmt.Errorf("panic: %+v", p)
-			}
-		}
-	}()
-	var buf bytes.Buffer
-	must.Do(jpeg.Encode(&buf, img, &jpeg.Options{Quality: q}))
-	jscn := NewJFIFScanner(&buf)
-	for jscn.Scan() {
-		if jscn.Tag == JFIFMarkerSOS {
-			break
-		}
-		must.Do(jscn.Tag.WriteMarker(wr, uint16(jscn.Size)))
-		_, err = io.Copy(wr, jscn.Segment())
-		must.Do(err)
+	if evt.AnyFlag(eds.StatusHasLatLon) {
+		scrns.Lat = evt.Latitude
+		scrns.Lon = evt.Longitude
+		scrns.Alt = evt.Altitude
+	} else {
+		scrns.Lat = math.NaN()
+		scrns.Lon = math.NaN()
+		scrns.Alt = 0
 	}
-	switch {
-	case jscn.Err != nil:
-		return jscn.Err
-	case jscn.Tag != JFIFMarkerSOS:
-		return errors.New("missing data segment")
-	}
-	if tags != nil {
-		data, err := json.Marshal(tags)
-		must.Do(err)
-		must.Do(JFIFMarkerCOM.WriteMarker(wr, uint16(len(data)+2)))
-		_, err = wr.Write(data)
-		must.Do(err)
-	}
-	if err = JFIFMarkerSOS.WriteMarker(wr, 0); err != nil {
-		return err
-	}
-	if _, err = io.Copy(wr, jscn.Segment()); err != nil {
-		return err
-	}
-	_, err = wr.Write([]byte{0xff, byte(JFIFMarkerEOI)})
-	return err
+	return nil
 }

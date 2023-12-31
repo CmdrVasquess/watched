@@ -1,0 +1,180 @@
+package screenshot
+
+import (
+	"fmt"
+
+	"github.com/sfomuseum/go-exif-update/tags"
+)
+
+func Example_exifTags() {
+	ts, err := tags.SupportedTags()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for _, t := range ts {
+		fmt.Println(t)
+	}
+	// Unordered Output:
+	// ExposureTime
+	// FNumber
+	// SpectralSensitivity
+	// DateTimeOriginal
+	// DateTimeDigitized
+	// CompressedBitsPerPixel
+	// ShutterSpeedValue
+	// ApertureValue
+	// BrightnessValue
+	// ExposureBiasValue
+	// MaxApertureValue
+	// SubjectDistance
+	// FocalLength
+	// SubSecTime
+	// SubSecTimeOriginal
+	// SubSecTimeDigitized
+	// RelatedSoundFile
+	// FlashEnergy
+	// FocalPlaneXResolution
+	// FocalPlaneYResolution
+	// ExposureIndex
+	// DigitalZoomRatio
+	// ImageUniqueID
+	// CameraOwnerName
+	// BodySerialNumber
+	// LensSpecification
+	// LensMake
+	// LensModel
+	// LensSerialNumber
+	// GPSVersionID
+	// GPSLatitudeRef
+	// GPSLatitude
+	// GPSLongitudeRef
+	// GPSLongitude
+	// GPSAltitudeRef
+	// GPSAltitude
+	// GPSTimeStamp
+	// GPSSatellites
+	// GPSStatus
+	// GPSMeasureMode
+	// GPSDOP
+	// GPSSpeedRef
+	// GPSSpeed
+	// GPSTrackRef
+	// GPSTrack
+	// GPSImgDirectionRef
+	// GPSImgDirection
+	// GPSMapDatum
+	// GPSDestLatitudeRef
+	// GPSDestLatitude
+	// GPSDestLongitudeRef
+	// GPSDestLongitude
+	// GPSDestBearingRef
+	// GPSDestBearing
+	// GPSDestDistanceRef
+	// GPSDestDistance
+	// GPSDateStamp
+	// ProcessingSoftware
+	// DocumentName
+	// ImageDescription
+	// Make
+	// Model
+	// XResolution
+	// YResolution
+	// Software
+	// DateTime
+	// Artist
+	// HostComputer
+	// WhitePoint
+	// PrimaryChromaticities
+	// InkNames
+	// DotRange
+	// TargetPrinter
+	// ClipPath
+	// XClipPathUnits
+	// YClipPathUnits
+	// YCbCrCoefficients
+	// ReferenceBlackWhite
+	// XMLPacket
+	// ImageID
+	// CFAPattern
+	// BatteryLevel
+	// Copyright
+	// ExposureTime
+	// FNumber
+	// ImageResources
+	// SpectralSensitivity
+	// TimeZoneOffset
+	// DateTimeOriginal
+	// CompressedBitsPerPixel
+	// ShutterSpeedValue
+	// ApertureValue
+	// BrightnessValue
+	// ExposureBiasValue
+	// MaxApertureValue
+	// SubjectDistance
+	// FocalLength
+	// FlashEnergy
+	// FocalPlaneXResolution
+	// FocalPlaneYResolution
+	// SecurityClassification
+	// ImageHistory
+	// ExposureIndex
+	// TIFFEPStandardID
+	// XPTitle
+	// XPComment
+	// XPAuthor
+	// XPKeywords
+	// XPSubject
+	// DNGVersion
+	// DNGBackwardVersion
+	// UniqueCameraModel
+	// LocalizedCameraModel
+	// CFAPlaneColor
+	// BlackLevel
+	// BlackLevelDeltaH
+	// BlackLevelDeltaV
+	// DefaultScale
+	// ColorMatrix1
+	// ColorMatrix2
+	// CameraCalibration1
+	// CameraCalibration2
+	// ReductionMatrix1
+	// ReductionMatrix2
+	// AnalogBalance
+	// AsShotWhiteXY
+	// BaselineExposure
+	// BaselineNoise
+	// BaselineSharpness
+	// LinearResponseLimit
+	// CameraSerialNumber
+	// LensInfo
+	// ChromaBlurRadius
+	// AntiAliasStrength
+	// ShadowScale
+	// DNGPrivateData
+	// BestQualityScale
+	// RawDataUniqueID
+	// OriginalRawFileName
+	// AsShotPreProfileMatrix
+	// CurrentPreProfileMatrix
+	// CameraCalibrationSignature
+	// ProfileCalibrationSignature
+	// AsShotProfileName
+	// NoiseReductionApplied
+	// ProfileName
+	// ProfileHueSatMapData1
+	// ProfileHueSatMapData2
+	// ProfileToneCurve
+	// ProfileCopyright
+	// ForwardMatrix1
+	// ForwardMatrix2
+	// PreviewApplicationName
+	// PreviewApplicationVersion
+	// PreviewSettingsName
+	// PreviewSettingsDigest
+	// PreviewDateTime
+	// ProfileLookTableData
+	// NoiseProfile
+	// InteroperabilityIndex
+	// RelatedImageFileFormat
+}

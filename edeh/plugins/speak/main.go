@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"git.fractalqb.de/fractalqb/qblog"
-	plugin "github.com/CmdrVasquess/watched/edeh/plugin"
+	"github.com/CmdrVasquess/watched/edeh/plugins"
 	"github.com/CmdrVasquess/watched/examples/speak"
 	"gopkg.in/yaml.v3"
 )
@@ -42,7 +42,7 @@ func main() {
 	}
 	speaker.Verbose = speaker.Verbose || *fVerb
 	defer speaker.Close()
-	plugin.RunRecv(&speaker, nil, slog.Default())
+	plugins.RunRecv(&speaker, nil, slog.Default())
 }
 
 func logFatal(msg string, args ...any) {

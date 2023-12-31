@@ -1,4 +1,4 @@
-TTSExe: C:\bin\wsay.exe
+TTSExe: C:\bin\wsay.exe # https://github.com/p-groarke/wsay
 Args: []
 Verbose: false
 Events:
@@ -20,8 +20,6 @@ Events:
       Template: >-
         {{if and .NonBodyCount (gt .NonBodyCount 0.0) -}}
           {{.NonBodyCount}} non-bodies
-        {{- else -}}
-          Boring system!
         {{- end}}
   FSSSignalDiscovered:
     Flags: [-v, '2']

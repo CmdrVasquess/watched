@@ -40,7 +40,7 @@ func main() {
 
 	for _, p := range plugins {
 		task = gomk.NewCmdDefTask(onErr, prj, p, goBuild).
-			WorkDir("edeh/plugin", p).
+			WorkDir("edeh/plugins", p).
 			DependOn(tGoGen.Name())
 		cmds.DependOn(task.Name())
 	}
